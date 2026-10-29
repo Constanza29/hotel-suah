@@ -1,0 +1,59 @@
+:root {
+    --color-primario: #2c3e50;    /* Azul oscuro elegante */
+    --color-secundario: #18bc9c;  /* Verde vibrante */
+    --color-fondo: #f8f9fa;       /* Gris muy claro */
+    --shadow-suave: 0 4px 6px rgba(0,0,0,0.1);
+    --shadow-fuerte: 0 12px 24px rgba(0,0,0,0.15);
+}
+body {
+    background-color: var(--color-fondo);
+    animation: fadeIn 0.6s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.img-fluid {
+    height: 250px;
+    width: 100%;
+    object-fit: cover; 
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 8px;
+}
+
+/* Efecto Zoom al pasar el mouse */
+.img-fluid:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-fuerte) !important;
+}
+
+/* Animacion tarjetas */
+.card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow-suave);
+    border: none !important;
+}
+
+/* Las tarjetas "flotan" al pasar el mouse */
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-fuerte);
+}
+
+.img-producto {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+}
+
+.custom-header {
+    font-weight: bold;
+    text-align: center;
+    font-size: 1.1rem;
+}
+.bg-disponible { background-color: #28a745 !important; }
+.bg-prestado { background-color: #dc3545 !important; }

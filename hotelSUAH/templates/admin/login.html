@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Acceso Empleados - SUAH Intranet{% endblock %}
+
+{% block content %}
+<div class="min-vh-100 d-flex align-items-center justify-center bg-suah-dark py-5">
+  <div class="container" style="max-width: 420px;">
+    
+    <div class="card shadow-lg border-0 rounded-4 p-4 text-dark bg-white position-relative">
+      
+      <a href="{% url 'index' %}" class="position-absolute top-0 end-0 mt-3 me-3 text-secondary text-decoration-none small">
+        <i class="bi bi-arrow-left"></i> Volver Web
+      </a>
+
+      <div class="text-center mb-4 mt-2">
+        <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-2" style="width: 50px; height: 50px;">
+          <i class="bi bi-shield-lock-fill text-suah-gold fs-3"></i>
+        </div>
+        <h2 class="h4 fw-bold text-suah-gold mb-1">SUAH INTRANET</h2>
+        <p class="text-muted small mb-0">Acceso Empleados y Seguridad (RNF-04)</p>
+      </div>
+
+      {% if error %}
+      <div class="alert alert-danger py-2 px-3 small text-center mb-3">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ error }}
+      </div>
+      {% endif %}
+
+      <form method="POST" action="{% url 'login_admin' %}">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-secondary">CORREO INSTITUCIONAL</label>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-fill text-muted"></i></span>
+            <input type="email" name="email" required placeholder="ej: rep@suah.cl" class="form-control border-start-0">
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-secondary">CONTRASEÑA</label>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-key-fill text-muted"></i></span>
+            <input type="password" name="password" required placeholder="****" class="form-control border-start-0">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full py-2 fw-bold shadow-sm mb-3" style="background-color: #0d6efd; border: none;">
+          <i class="bi bi-box-arrow-in-right me-1"></i> Ingresar al Sistema
+        </button>
+
+        <div class="card bg-light border-0 rounded-3 p-3 mt-3">
+          <p class="small fw-bold text-secondary mb-2"><i class="bi bi-info-circle me-1"></i> Cuentas institucionales demo:</p>
+          <ul class="list-unstyled small mb-0 text-muted" style="font-size: 0.8rem; line-height: 1.5;">
+            <li><strong>rep@suah.cl</strong> (Recepción / Clave: 1234)</li>
+            <li><strong>aseo@suah.cl</strong> (Housekeeping / Clave: 1234)</li>
+            <li><strong>mant@suah.cl</strong> (Mantenimiento / Clave: 1234)</li>
+            <li><strong>admin@suah.cl</strong> (Administrador / Clave: admin123)</li>
+          </ul>
+        </div>
+      </form>
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}

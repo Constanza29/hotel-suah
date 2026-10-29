@@ -1,0 +1,926 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SUAH Hotel - Reservas y Estadía{% endblock %}
+
+{% block content %}
+<!-- Top Bar Corporativa -->
+<div class="bg-suah-dark text-white py-1 px-3 border-bottom border-secondary small">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div>
+      <span class="me-2"><i class="bi bi-envelope me-1"></i>contacto@suah.cl</span>
+      <span class="d-none d-md-inline"><i class="bi bi-telephone me-1"></i>+56 2 2372 4000</span>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      {% if cliente_nombre %}
+      <span class="text-warning fw-bold"><i class="bi bi-person-circle me-1"></i>Hola, {{ cliente_nombre }}</span>
+      <button onclick="clientLogout()" class="btn btn-outline-light btn-sm py-1 px-3 fw-bold" style="font-size: 0.8rem;">
+        <i class="bi bi-box-arrow-right me-1"></i>Cerrar Sesión
+      </button>
+      {% else %}
+      <button onclick="abrirModalAuthCliente('login')" class="btn btn-warning btn-sm py-1 px-3 fw-bold text-dark shadow-sm">
+        <i class="bi bi-person-fill-lock me-1"></i>Acceso Clientes / Mi Cuenta
+      </button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Navbar Principal -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-suah-dark sticky-top shadow-sm py-3">
+  <div class="container">
+    <a class="navbar-brand fw-bold text-suah-gold fs-3 font-serif" href="#">
+      SUAH <span class="fs-6 fw-normal text-white text-uppercase tracking-wider">Hotel & Resort</span>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navPublica">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navPublica">
+      <ul class="navbar-nav ms-auto mb-2 mb-lg-0 small fw-bold">
+        <li class="nav-item"><a class="nav-link active text-white" href="#inicio">INICIO</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="#habitaciones">HABITACIONES</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="#servicios">SERVICIOS</a></li>
+        <li class="nav-item"><a class="nav-link text-white-50" href="#contacto">CONTACTO</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Banner de Huésped Activo (Autoservicio) -->
+{% if reserva_activa %}
+<div class="bg-dark text-white border-bottom border-warning py-3">
+  <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+    <div>
+      <span class="badge bg-warning text-dark text-uppercase fw-bold mb-1">Estadía en Curso</span>
+      <h4 class="h5 fw-bold mb-0 text-white">Habitación {{ reserva_activa.habitacion.numero }} ({{ reserva_activa.habitacion.tipo.nombre }})</h4>
+      <small class="text-white-50">Reserva: <strong>{{ reserva_activa.codigo_reserva }}</strong> | Check-in: {{ reserva_activa.fecha_checkin }} | Check-out: {{ reserva_activa.fecha_checkout }}</small>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <div class="bg-secondary bg-opacity-25 px-3 py-2 rounded-3 text-end me-2">
+        <small class="text-white-50 d-block">Saldo en Folio</small>
+        <strong class="text-warning h6 mb-0">${{ folio_huesped.saldo_pendiente|default:0 }} CLP</strong>
+      </div>
+      <button onclick="abrirModalPedirServicio()" class="btn btn-primary btn-sm fw-bold">
+        <i class="bi bi-bell-fill me-1"></i> Pedir Servicio Extra
+      </button>
+      {% if folio_huesped.saldo_pendiente > 0 %}
+      <button onclick="abrirModalAbonoOnline({{ folio_huesped.saldo_pendiente }})" class="btn btn-success btn-sm fw-bold">
+        <i class="bi bi-credit-card-fill me-1"></i> Pagar con WebPay
+      </button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Hero Banner y Buscador de Disponibilidad (RF-01) -->
+<section id="inicio" class="py-5 position-relative text-white hero-banner" style="background: linear-gradient(rgba(15, 15, 15, 0.55), rgba(15, 15, 15, 0.7)), url('{% static "images/hero_hotel.jpg" %}') center/cover no-repeat; min-height: 520px;">
+  <div class="container py-4 text-center">
+    <span class="text-suah-gold text-uppercase fw-bold tracking-widest small mb-2 d-inline-block">Bienvenido al Confort & Elegancia</span>
+    <h1 class="display-5 fw-bold mb-3 font-serif">Una Experiencia Inolvidable en Cada Detalle</h1>
+    <p class="lead mb-5 text-white-50 mx-auto" style="max-width: 650px;">
+      Reserva tu habitación en línea con inventario en tiempo real y disfruta de nuestras exclusivas instalaciones.
+    </p>
+
+    <!-- Caja de Búsqueda de Disponibilidad con Bootstrap Form -->
+    <div class="card border-0 shadow-lg rounded-4 p-4 text-dark bg-white mx-auto text-start" style="max-width: 900px;">
+      <h5 class="fw-bold text-dark mb-3"><i class="bi bi-search text-suah-gold me-2"></i>Consultar Disponibilidad de Habitaciones</h5>
+      
+      <div class="row g-3">
+        <div class="col-12 col-md-3">
+          <label class="form-label small fw-bold text-muted mb-1">FECHA LLEGADA</label>
+          <input type="date" id="web-checkin" class="form-control">
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label small fw-bold text-muted mb-1">FECHA SALIDA</label>
+          <input type="date" id="web-checkout" class="form-control">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small fw-bold text-muted mb-1">ADULTOS</label>
+          <select id="web-adults" class="form-select">
+            <option value="1">1</option>
+            <option value="2" selected>2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small fw-bold text-muted mb-1">NIÑOS</label>
+          <select id="web-kids" class="form-select">
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-2 d-flex align-items-end">
+          <button onclick="buscarDisponibilidadWeb()" class="btn btn-warning w-100 fw-bold py-2 shadow-sm text-dark">
+            BUSCAR
+          </button>
+        </div>
+      </div>
+
+      <!-- Resultados de Búsqueda -->
+      <div id="booking-step-2" class="d-none mt-4 border-top pt-4">
+        <h6 class="fw-bold text-suah-gold mb-3">Habitaciones Disponibles para tus Fechas:</h6>
+        <div class="row g-3" id="web-rooms-results"></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- Catálogo de Habitaciones con Bootstrap Cards -->
+<section id="habitaciones" class="py-5 bg-light">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="text-suah-gold fw-bold text-uppercase small">Alojamiento de Primer Nivel</span>
+      <h2 class="h3 fw-bold text-dark font-serif">Nuestras Habitaciones & Suites</h2>
+      <div class="mx-auto bg-warning" style="height: 3px; width: 60px;"></div>
+    </div>
+
+    <div class="row g-4">
+      {% for t in tipos %}
+      <div class="col-12 col-md-4">
+        <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden">
+          <img src="{{ t.imagen_url }}" class="card-img-top" alt="{{ t.nombre }}" style="height: 220px; object-fit: cover;">
+          <div class="card-body p-4 d-flex flex-column">
+            <h5 class="card-title fw-bold text-dark">{{ t.nombre }}</h5>
+            <p class="card-text text-muted small flex-grow-1">{{ t.descripcion }}</p>
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+              <div>
+                <small class="text-muted d-block">Desde</small>
+                <strong class="h5 fw-bold text-suah-gold mb-0">${{ t.precio_base }} CLP</strong>
+                <small class="text-muted">/ noche</small>
+              </div>
+              <a href="#inicio" class="btn btn-outline-dark btn-sm fw-bold">Ver Fechas</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- Servicios del Hotel -->
+<section id="servicios" class="py-5 bg-white">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="text-suah-gold fw-bold text-uppercase small">Comodidad Absoluta</span>
+      <h2 class="h3 fw-bold text-dark font-serif">Servicios Integrados</h2>
+      <div class="mx-auto bg-warning" style="height: 3px; width: 60px;"></div>
+    </div>
+
+    <div class="row g-4 text-center">
+      <div class="col-6 col-md-3">
+        <div class="p-4 rounded-4 bg-light h-100">
+          <i class="bi bi-cup-hot-fill fs-1 text-suah-gold mb-2 d-block"></i>
+          <h6 class="fw-bold text-dark">Restaurante Gourmet</h6>
+          <small class="text-muted">Desayunos buffet y gastronomía chilena e internacional.</small>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="p-4 rounded-4 bg-light h-100">
+          <i class="bi bi-water fs-1 text-suah-gold mb-2 d-block"></i>
+          <h6 class="fw-bold text-dark">Piscina Climatizada</h6>
+          <small class="text-muted">Zona de descanso y bar junto a la piscina.</small>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="p-4 rounded-4 bg-light h-100">
+          <i class="bi bi-flower1 fs-1 text-suah-gold mb-2 d-block"></i>
+          <h6 class="fw-bold text-dark">Spa & Relajación</h6>
+          <small class="text-muted">Masajes, sauna y tratamientos de bienestar.</small>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="p-4 rounded-4 bg-light h-100">
+          <i class="bi bi-wifi fs-1 text-suah-gold mb-2 d-block"></i>
+          <h6 class="fw-bold text-dark">Wi-Fi 6 de Alta Velocidad</h6>
+          <small class="text-muted">Conexión dedicada en todas las áreas y suites.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Sección de Contacto & Ubicación -->
+<section id="contacto" class="py-5 bg-light border-top">
+  <div class="container py-3">
+    <div class="text-center mb-5">
+      <span class="text-suah-gold fw-bold text-uppercase small tracking-wider">¿Tienes Dudas o Consultas?</span>
+      <h2 class="h3 fw-bold text-dark font-serif">Contáctanos</h2>
+      <div class="mx-auto bg-warning" style="height: 3px; width: 60px;"></div>
+    </div>
+
+    <div class="row g-4 align-items-stretch">
+      
+      <!-- Columna 1: Información de Contacto y Horarios -->
+      <div class="col-12 col-lg-4">
+        <div class="card h-100 border-0 shadow-sm rounded-4 p-4 bg-white">
+          <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">
+            <i class="bi bi-geo-alt-fill text-suah-gold me-2"></i>Hotel SUAH Santiago
+          </h5>
+          
+          <ul class="list-unstyled space-y-3 small text-muted mb-4">
+            <li class="d-flex align-items-start mb-3">
+              <i class="bi bi-pin-map-fill text-warning fs-5 me-3"></i>
+              <div>
+                <strong class="text-dark d-block">Dirección</strong>
+                Av. Vitacura 2885, Las Condes, Santiago de Chile.
+              </div>
+            </li>
+            <li class="d-flex align-items-start mb-3">
+              <i class="bi bi-telephone-fill text-warning fs-5 me-3"></i>
+              <div>
+                <strong class="text-dark d-block">Teléfono de Reservas</strong>
+                +56 2 2372 4000 / +56 9 8765 4321
+              </div>
+            </li>
+            <li class="d-flex align-items-start mb-3">
+              <i class="bi bi-envelope-fill text-warning fs-5 me-3"></i>
+              <div>
+                <strong class="text-dark d-block">Correo Electrónico</strong>
+                contacto@suah.cl / reservas@suah.cl
+              </div>
+            </li>
+            <li class="d-flex align-items-start mb-0">
+              <i class="bi bi-clock-fill text-warning fs-5 me-3"></i>
+              <div>
+                <strong class="text-dark d-block">Horarios de Atención</strong>
+                Recepción: Abierta 24/7<br>
+                Check-in: 15:00 hrs | Check-out: 12:00 hrs
+              </div>
+            </li>
+          </ul>
+
+          <div class="card bg-light border-0 rounded-3 p-3 mt-auto">
+            <small class="fw-bold text-dark d-block mb-1"><i class="bi bi-shield-check text-success me-1"></i>Servicio al Huésped</small>
+            <small class="text-muted">Estacionamiento subterráneo gratuito para huéspedes y transfer al aeropuerto bajo reserva.</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna 2: Mapa Interactivo de Ubicación (Al medio) -->
+      <div class="col-12 col-lg-4">
+        <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white d-flex flex-column">
+          <div class="card-header bg-white border-0 py-3 px-3 d-flex justify-content-between align-items-center">
+            <span class="small fw-bold text-secondary">
+              <i class="bi bi-map-fill text-primary me-2"></i>Mapa de Ubicación
+            </span>
+            <span class="badge bg-success-subtle text-success border border-success-subtle">Las Condes</span>
+          </div>
+          <div class="card-body p-0 flex-grow-1" style="min-height: 280px;">
+            <iframe 
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3330.129202535905!2d-70.60538962363198!3d-33.419918295982845!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9662cf69c7356269%3A0xe54ef5bb98308736!2sAv.%20Vitacura%202885%2C%20Las%20Condes%2C%20Regi%C3%B3n%20Metropolitana!5e0!3m2!1ses!2scl!4v1714000000000!5m2!1ses!2scl" 
+              width="100%" 
+              height="100%" 
+              style="border:0; min-height: 280px;" 
+              allowfullscreen="" 
+              loading="lazy" 
+              referrerpolicy="no-referrer-when-downgrade">
+            </iframe>
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna 3: Formulario de Contacto Interactivo (A la derecha) -->
+      <div class="col-12 col-lg-4">
+        <div class="card h-100 border-0 shadow-sm rounded-4 p-4 bg-white">
+          <h5 class="fw-bold text-dark mb-2 border-bottom pb-2">
+            <i class="bi bi-chat-square-text-fill text-suah-gold me-2"></i>Envíanos un Mensaje
+          </h5>
+          <p class="small text-muted mb-3">¿Deseas una cotización o tienes dudas? Te responderemos a la brevedad.</p>
+
+          <form id="formContactoSuah" onsubmit="event.preventDefault(); enviarFormularioContacto();">
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Nombre Completo *</label>
+              <input type="text" id="contacto-nombre" class="form-control form-control-sm" placeholder="Ej: Marcela González" required>
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label small fw-bold mb-0">Correo Electrónico *</label>
+                <small class="text-primary" style="font-size: 0.7rem;">@gmail.com / @outlook.com</small>
+              </div>
+              <input type="email" id="contacto-email" class="form-control form-control-sm" placeholder="nombre@correo.com" required>
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label small fw-bold mb-0">Mensaje *</label>
+                <small id="contacto-char-count" class="text-muted" style="font-size: 0.72rem;">0 / 300 caracteres</small>
+              </div>
+              <textarea id="contacto-mensaje" rows="4" maxlength="300" class="form-control form-control-sm" placeholder="Escribe aquí tu consulta o requerimiento especial..." oninput="actualizarContadorContacto(this)" required></textarea>
+            </div>
+
+            <div id="contacto-feedback" class="d-none alert py-2 small mb-3"></div>
+
+            <button type="submit" id="btn-enviar-contacto" class="btn btn-warning w-100 fw-bold shadow-sm text-dark py-2">
+              <i class="bi bi-send-fill me-1"></i> Enviar Mensaje
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Footer Completo Hotelero de Lujo -->
+<footer class="bg-suah-dark text-white pt-5 pb-3 border-top border-secondary">
+  <div class="container">
+    <div class="row g-4 mb-4">
+      
+      <!-- Bloque 1: Identidad -->
+      <div class="col-12 col-md-4">
+        <h4 class="fw-bold text-suah-gold font-serif mb-2">SUAH HOTEL</h4>
+        <p class="small text-white-50 mb-3" style="line-height: 1.6;">
+          Sistema Unificado de Administración Hotelera. Líder en hospitalidad, confort y tecnología de punta para una experiencia de descanso inigualable.
+        </p>
+        <div class="d-flex gap-2">
+          <a href="#" class="btn btn-outline-light btn-sm rounded-circle" style="width: 32px; height: 32px; padding: 3px;"><i class="bi bi-facebook"></i></a>
+          <a href="#" class="btn btn-outline-light btn-sm rounded-circle" style="width: 32px; height: 32px; padding: 3px;"><i class="bi bi-instagram"></i></a>
+          <a href="#" class="btn btn-outline-light btn-sm rounded-circle" style="width: 32px; height: 32px; padding: 3px;"><i class="bi bi-linkedin"></i></a>
+          <a href="#" class="btn btn-outline-light btn-sm rounded-circle" style="width: 32px; height: 32px; padding: 3px;"><i class="bi bi-whatsapp"></i></a>
+        </div>
+      </div>
+
+      <!-- Bloque 2: Enlaces Rápidos -->
+      <div class="col-6 col-md-2">
+        <h6 class="fw-bold text-white mb-3 text-uppercase small tracking-wider">Navegación</h6>
+        <ul class="list-unstyled small text-white-50 space-y-2">
+          <li class="mb-1"><a href="#inicio" class="text-white-50 text-decoration-none">Inicio</a></li>
+          <li class="mb-1"><a href="#habitaciones" class="text-white-50 text-decoration-none">Habitaciones</a></li>
+          <li class="mb-1"><a href="#servicios" class="text-white-50 text-decoration-none">Servicios & Spa</a></li>
+          <li class="mb-1"><a href="#contacto" class="text-white-50 text-decoration-none">Ubicación</a></li>
+        </ul>
+      </div>
+
+      <!-- Bloque 3: Normativa y Seguridad -->
+      <div class="col-6 col-md-3">
+        <h6 class="fw-bold text-white mb-3 text-uppercase small tracking-wider">Compromiso Legal</h6>
+        <ul class="list-unstyled small text-white-50" style="font-size: 0.8rem; line-height: 1.6;">
+          <li class="mb-1">✔️ Protección de Datos (Ley N° 21.719)</li>
+          <li class="mb-1">✔️ Ciberseguridad (Ley N° 21.459)</li>
+          <li class="mb-1">✔️ Estándar ISO/IEC 27001</li>
+          <li class="mb-1">✔️ Protocolo Seguro SSL / TLS 256 bits</li>
+        </ul>
+      </div>
+
+      <!-- Bloque 4: Portal Staff Exclusivo -->
+      <div class="col-12 col-md-3">
+        <h6 class="fw-bold text-white mb-3 text-uppercase small tracking-wider">Acceso Interno</h6>
+        <p class="small text-white-50 mb-2">Portal exclusivo para colaboradores, recepción y administración del hotel:</p>
+        <a href="{% url 'login_admin' %}" class="btn btn-outline-warning btn-sm w-100 fw-bold py-2 shadow-sm">
+          <i class="bi bi-shield-lock-fill me-1"></i> Intranet SUAH Staff
+        </a>
+      </div>
+
+    </div>
+
+    <!-- Barra Inferior Derechos -->
+    <div class="pt-3 border-top border-secondary d-flex flex-column flex-md-row justify-content-between align-items-center small text-white-50">
+      <p class="mb-0">Proyecto Integrado &copy; 2026 SUAH Hotel S.A. Todos los derechos reservados.</p>
+      <p class="mb-0 text-white-50">Desarrollado con Python, Django 5 & Bootstrap 5</p>
+    </div>
+  </div>
+</footer>
+
+
+<!-- ======================================================== -->
+<!-- MODALES BOOTSTRAP 5 HUÉSPED (AUTENTICACIÓN Y SERVICIOS)  -->
+<!-- ======================================================== -->
+
+<!-- Modal Acceso y Registro Seguro de Huéspedes -->
+<div class="modal fade" id="modalAuthCliente" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-lg">
+      <div class="modal-header border-0 pb-0">
+        <!-- Nav Tabs Bootstrap -->
+        <ul class="nav nav-pills nav-fill w-100" id="pills-tab" role="tablist">
+          <li class="nav-item">
+            <button class="nav-link active fw-bold btn-sm" id="tab-btn-login" onclick="toggleAuthTab('login')">
+              Iniciar Sesión
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link fw-bold btn-sm" id="tab-btn-reg" onclick="toggleAuthTab('register')">
+              Registro Seguro
+            </button>
+          </li>
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body p-4">
+        
+        <!-- Formulario Login -->
+        <div id="form-login-cliente">
+          <div class="text-center mb-3">
+            <h5 class="fw-bold text-dark mb-1">Acceso Huéspedes</h5>
+            <small class="text-muted">Gestiona tus reservas y estadía</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Correo Electrónico</label>
+            <input type="email" id="cli-login-email" placeholder="ejemplo@correo.cl" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Contraseña</label>
+            <input type="password" id="cli-login-pass" placeholder="••••••••" class="form-control">
+          </div>
+          <button onclick="clientLoginSubmit()" class="btn btn-warning w-100 fw-bold shadow-sm text-dark py-2">
+            Ingresar a Mi Cuenta
+          </button>
+        </div>
+
+        <!-- Formulario Registro Seguro -->
+        <div id="form-register-cliente" class="d-none">
+          <div class="text-center mb-3">
+            <h5 class="fw-bold text-dark mb-1">Crear Cuenta Segura</h5>
+            <small class="text-muted">Conforme a Ley 21.719 e ISO 27001</small>
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label small fw-bold mb-1">Nombre Completo *</label>
+            <input type="text" id="cli-reg-name" placeholder="Ej: Constanza Cortés" class="form-control form-control-sm">
+          </div>
+
+          <div class="mb-2">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="form-label small fw-bold mb-0">Documento *</label>
+              <div class="d-flex gap-2">
+                <div class="form-check form-check-inline mb-0" style="font-size: 0.75rem;">
+                  <input class="form-check-input" type="radio" name="reg-tipo-doc" id="regDocRut" value="rut" checked onchange="cambiarTipoDocRegistro('rut')">
+                  <label class="form-check-label" for="regDocRut">RUT</label>
+                </div>
+                <div class="form-check form-check-inline mb-0" style="font-size: 0.75rem;">
+                  <input class="form-check-input" type="radio" name="reg-tipo-doc" id="regDocPas" value="pasaporte" onchange="cambiarTipoDocRegistro('pasaporte')">
+                  <label class="form-check-label" for="regDocPas">Pasaporte</label>
+                </div>
+              </div>
+            </div>
+            <div class="row g-2">
+              <div class="col-7">
+                <input type="text" id="cli-reg-rut" placeholder="12.345.678-5" class="form-control form-control-sm">
+                <small id="msg-rut-feedback" class="text-muted" style="font-size: 0.7rem;">Módulo 11 (con guion)</small>
+              </div>
+              <div class="col-5">
+                <input type="text" id="cli-reg-tel" placeholder="+56 9 1234 5678" class="form-control form-control-sm">
+                <small class="text-muted" style="font-size: 0.7rem;">Teléfono Móvil</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="form-label small fw-bold mb-0">Correo Electrónico Real *</label>
+              <small class="text-primary" style="font-size: 0.7rem;">@gmail.com / @outlook.com</small>
+            </div>
+            <input type="email" id="cli-reg-email" placeholder="nombre@gmail.com" class="form-control form-control-sm">
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label small fw-bold mb-1">Contraseña Robusta *</label>
+            <input type="password" id="cli-reg-pass" onkeyup="evaluarFortalezaClave(this.value)" placeholder="Mínimo 8 caract, Mayús, Núm y Símbolo" class="form-control form-control-sm">
+            <div class="progress mt-1" style="height: 4px;">
+              <div id="pwd-strength-fill" class="progress-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+            <small id="pwd-strength-text" class="text-muted" style="font-size: 0.7rem;">Seguridad: pendiente</small>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold mb-1">Confirmar Contraseña *</label>
+            <input type="password" id="cli-reg-pass2" placeholder="Repite tu contraseña exactamente" class="form-control form-control-sm">
+          </div>
+
+          <div class="card bg-light border-0 p-2 rounded-3 mb-3" style="font-size: 0.75rem;">
+            🔒 <strong>Política de Seguridad:</strong> Mín. 8 caracteres, al menos una mayúscula, un número y un símbolo especial (@, $, !, %, *, #, etc.).
+          </div>
+
+          <button onclick="clientRegisterSubmit()" class="btn btn-dark w-100 fw-bold shadow-sm py-2">
+            Registrar Cuenta Segura
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Huésped: Pedir Servicio Extra -->
+<div class="modal fade" id="modalPedirServicio" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-lg">
+      <div class="modal-header bg-light border-0 py-3">
+        <h5 class="modal-title fw-bold text-dark">Solicitar Servicio a la Habitación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-3">El cargo se reflejará en tu folio y se confirmará de inmediato.</p>
+        <div class="mb-3">
+          <label class="form-label small fw-bold">Servicio</label>
+          <select id="sel-huesped-servicio" onchange="actualizarPrecioServicioHuesped()" class="form-select">
+            <option value="Room Service: Cena Gourmet">Room Service: Cena Gourmet ($25.000)</option>
+            <option value="Room Service: Desayuno Buffet Americano">Room Service: Desayuno Buffet ($15.000)</option>
+            <option value="Pack Minibar Premium">Pack Minibar Premium ($12.000)</option>
+            <option value="Sesión de Masaje y Spa 50min">Sesión de Masaje y Spa ($45.000)</option>
+            <option value="Servicio de Lavandería Express">Lavandería Express ($18.000)</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-bold">Costo</label>
+          <input type="text" id="txt-huesped-monto-display" value="$25.000 CLP" readonly class="form-control fw-bold bg-light">
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" onclick="enviarSolicitudServicioHuesped()" class="btn btn-warning fw-bold text-dark shadow-sm">Confirmar Pedido</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Huésped: Abono WebPay Online -->
+<div class="modal fade" id="modalAbonoWebpay" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-lg">
+      <div class="modal-header bg-light border-0 py-3 text-center">
+        <div class="w-100">
+          <h5 class="modal-title fw-bold text-danger mb-0">WebPay <span class="text-primary">Plus</span></h5>
+          <small class="text-muted">Pasarela Segura Transbank Chile</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label small fw-bold">Monto a Pagar (CLP)</label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" id="txt-webpay-monto" min="1000" class="form-control fw-bold text-success fs-5">
+          </div>
+        </div>
+        <div class="card bg-light border-0 p-3 small text-muted">
+          <p class="mb-1">✔️ Cifrado SSL/TLS de 256 bits.</p>
+          <p class="mb-0">✔️ Acepta tarjetas de crédito, débito Redcompra y prepago.</p>
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" onclick="enviarAbonoWebpay()" class="btn btn-success fw-bold shadow-sm">Pagar Ahora</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  let currentClient = {% if cliente_nombre %}{ name: "{{ cliente_nombre }}", email: "{{ request.user.email }}" }{% else %}null{% endif %};
+  let bsModalAuth = null;
+  let bsModalServicio = null;
+  let bsModalWebpay = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    bsModalAuth = new bootstrap.Modal(document.getElementById('modalAuthCliente'));
+    bsModalServicio = new bootstrap.Modal(document.getElementById('modalPedirServicio'));
+    bsModalWebpay = new bootstrap.Modal(document.getElementById('modalAbonoWebpay'));
+  });
+
+  function abrirModalAuthCliente(tab = 'login') {
+    toggleAuthTab(tab);
+    bsModalAuth.show();
+  }
+
+  function toggleAuthTab(tab) {
+    const btnLogin = document.getElementById('tab-btn-login');
+    const btnReg = document.getElementById('tab-btn-reg');
+    const formLogin = document.getElementById('form-login-cliente');
+    const formReg = document.getElementById('form-register-cliente');
+
+    if(tab === 'login') {
+      btnLogin.classList.add('active');
+      btnReg.classList.remove('active');
+      formLogin.classList.remove('d-none');
+      formReg.classList.add('d-none');
+    } else {
+      btnReg.classList.add('active');
+      btnLogin.classList.remove('active');
+      formReg.classList.remove('d-none');
+      formLogin.classList.add('d-none');
+    }
+  }
+
+  function cambiarTipoDocRegistro(tipo) {
+    const input = document.getElementById('cli-reg-rut');
+    const msg = document.getElementById('msg-rut-feedback');
+    if(tipo === 'pasaporte') {
+      input.placeholder = 'Ej: AB123456';
+      msg.innerText = 'Pasaporte internacional alfanumérico';
+    } else {
+      input.placeholder = '12.345.678-5';
+      msg.innerText = 'Módulo 11 (con guion)';
+    }
+  }
+
+  function evaluarFortalezaClave(pwd) {
+    const fill = document.getElementById('pwd-strength-fill');
+    const txt = document.getElementById('pwd-strength-text');
+    let puntos = 0;
+    if(pwd.length >= 8) puntos++;
+    if(/[A-Z]/.test(pwd)) puntos++;
+    if(/[a-z]/.test(pwd)) puntos++;
+    if(/[0-9]/.test(pwd)) puntos++;
+    if(/[@$!%*?&#_\-.]/.test(pwd)) puntos++;
+
+    if(puntos <= 2) {
+      fill.style.width = '33%'; fill.className = 'progress-bar bg-danger';
+      txt.innerText = 'Seguridad: Débil (No cumple normativa)';
+      txt.className = 'text-danger small fw-bold';
+    } else if(puntos <= 4) {
+      fill.style.width = '66%'; fill.className = 'progress-bar bg-warning';
+      txt.innerText = 'Seguridad: Media';
+      txt.className = 'text-warning small fw-bold';
+    } else {
+      fill.style.width = '100%'; fill.className = 'progress-bar bg-success';
+      txt.innerText = 'Seguridad: Robusta (Cumple Ley 21.719 e ISO 27001)';
+      txt.className = 'text-success small fw-bold';
+    }
+  }
+
+  function clientRegisterSubmit() {
+    const name = document.getElementById('cli-reg-name').value.trim();
+    const rut = document.getElementById('cli-reg-rut').value.trim();
+    const tel = document.getElementById('cli-reg-tel').value.trim();
+    const email = document.getElementById('cli-reg-email').value.trim();
+    const pass = document.getElementById('cli-reg-pass').value;
+    const pass2 = document.getElementById('cli-reg-pass2').value;
+
+    if(!name || !email || !pass || !pass2) return showToast('Completa todos los campos obligatorios', 'warning');
+    if(pass !== pass2) return showToast('Las contraseñas no coinciden. Verifícalas.', 'error');
+
+    fetch('/api/cliente/registro/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+      body: JSON.stringify({ 
+        nombre: name, 
+        tipo_doc: document.querySelector('input[name="reg-tipo-doc"]:checked').value,
+        rut: rut, 
+        telefono: tel, 
+        email: email, 
+        password: pass, 
+        password_confirm: pass2 
+      })
+    })
+    .then(async res => {
+      const data = await res.json();
+      if(res.ok && data.status === 'ok') {
+        showToast(data.message, 'success');
+        toggleAuthTab('login');
+        document.getElementById('cli-login-email').value = email;
+      } else {
+        showToast(data.message || 'Error en el registro', 'error');
+      }
+    })
+    .catch(() => showToast('Error al conectar con el servidor', 'error'));
+  }
+
+  function clientLoginSubmit() {
+    const email = document.getElementById('cli-login-email').value.trim();
+    const pass = document.getElementById('cli-login-pass').value;
+
+    if(!email || !pass) return showToast('Ingresa correo y contraseña', 'warning');
+
+    fetch('/api/cliente/login/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+      body: JSON.stringify({ email: email, password: pass })
+    })
+    .then(async res => {
+      const data = await res.json();
+      if(res.ok && data.status === 'ok') {
+        currentClient = { name: data.nombre, email: data.email };
+        bsModalAuth.hide();
+        showToast(`¡Bienvenido/a, ${data.nombre}!`, 'success');
+        window.location.reload();
+      } else {
+        showToast(data.message || 'Error al iniciar sesión', 'error');
+      }
+    })
+    .catch(() => showToast('Error al conectar con el servidor', 'error'));
+  }
+
+  function clientLogout() {
+    fetch('/api/cliente/logout/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCsrfToken() }
+    })
+    .then(() => {
+      currentClient = null;
+      showToast('Sesión de huésped cerrada.', 'info');
+      window.location.reload();
+    });
+  }
+
+  function buscarDisponibilidadWeb() {
+    const inDate = document.getElementById('web-checkin').value;
+    const outDate = document.getElementById('web-checkout').value;
+    if(!inDate || !outDate) return showToast("Por favor, selecciona las fechas.", "warning");
+
+    fetch(`/api/buscar-disponibilidad/?checkin=${inDate}&checkout=${outDate}`)
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('booking-step-2').classList.remove('d-none');
+        const resultsDiv = document.getElementById('web-rooms-results');
+        resultsDiv.innerHTML = '';
+        if(data.habitaciones.length === 0) {
+          resultsDiv.innerHTML = '<div class="col-12 text-center text-danger fw-bold py-3">No hay habitaciones disponibles para esas fechas.</div>';
+          return;
+        }
+        data.habitaciones.forEach(r => {
+          resultsDiv.innerHTML += `
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="card h-100 border p-3 rounded-3 shadow-sm bg-white">
+                <span class="badge bg-primary-subtle text-primary border align-self-start mb-2">Piso ${r.numero[0]}</span>
+                <h5 class="fw-bold mb-1">Habitación #${r.numero} (${r.tipo})</h5>
+                <p class="small text-muted mb-2">${r.descripcion}</p>
+                <small class="text-secondary fw-semibold d-block mb-3">Capacidad: ${r.capacidad} personas</small>
+                <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+                  <span class="h5 fw-bold text-suah-gold mb-0">$${Number(r.precio).toLocaleString()} <small class="text-muted fs-6 font-normal">/ noche</small></span>
+                  <button onclick="confirmarReservaWeb('${r.numero}', ${r.precio})" class="btn btn-warning btn-sm fw-bold shadow-sm text-dark">
+                    Reservar
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        showToast(`Se encontraron ${data.habitaciones.length} habitaciones disponibles.`, 'success');
+      });
+  }
+
+  function confirmarReservaWeb(habId, precio) {
+    if(!currentClient) {
+      showToast('Debes iniciar sesión con tu cuenta de huésped para reservar.', 'warning');
+      abrirModalAuthCliente('login');
+      return;
+    }
+
+    const inDate = document.getElementById('web-checkin').value;
+    const outDate = document.getElementById('web-checkout').value;
+
+    fetch('/api/reservar-publico/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+      body: JSON.stringify({
+        habitacion_id: habId,
+        nombre: currentClient.name,
+        email: currentClient.email,
+        checkin: inDate,
+        checkout: outDate
+      })
+    })
+    .then(async res => {
+      const data = await res.json();
+      if(res.ok && data.status === 'ok') {
+        showToast(data.message, 'success');
+        setTimeout(() => window.location.reload(), 1200);
+      } else {
+        showToast(data.message || 'Error al reservar', 'error');
+      }
+    })
+    .catch(() => showToast('Error al conectar con el servidor', 'error'));
+  }
+
+  // --- AUTOSERVICIO DEL HUÉSPED ---
+  function abrirModalPedirServicio() {
+    actualizarPrecioServicioHuesped();
+    bsModalServicio.show();
+  }
+
+  function actualizarPrecioServicioHuesped() {
+    const sel = document.getElementById('sel-huesped-servicio');
+    const precios = {
+      'Room Service: Cena Gourmet': 25000,
+      'Room Service: Desayuno Buffet Americano': 15000,
+      'Pack Minibar Premium': 12000,
+      'Sesión de Masaje y Spa 50min': 45000,
+      'Servicio de Lavandería Express': 18000
+    };
+    const monto = precios[sel.value] || 15000;
+    document.getElementById('txt-huesped-monto-display').value = `$${monto.toLocaleString()} CLP`;
+  }
+
+  function enviarSolicitudServicioHuesped() {
+    const sel = document.getElementById('sel-huesped-servicio');
+    const precios = {
+      'Room Service: Cena Gourmet': 25000,
+      'Room Service: Desayuno Buffet Americano': 15000,
+      'Pack Minibar Premium': 12000,
+      'Sesión de Masaje y Spa 50min': 45000,
+      'Servicio de Lavandería Express': 18000
+    };
+    const monto = precios[sel.value] || 15000;
+
+    fetch('/api/huesped/solicitar-servicio/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+      body: JSON.stringify({ servicio: sel.value, monto: monto })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if(data.status === 'ok') {
+        showToast(data.message, 'success');
+        bsModalServicio.hide();
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        showToast(data.message, 'error');
+      }
+    });
+  }
+
+  function abrirModalAbonoOnline(saldo) {
+    document.getElementById('txt-webpay-monto').value = saldo;
+    bsModalWebpay.show();
+  }
+
+  function enviarAbonoWebpay() {
+    const monto = document.getElementById('txt-webpay-monto').value;
+    if(!monto || monto <= 0) return showToast('Ingresa un monto válido', 'warning');
+
+    fetch('/api/huesped/abono-online/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+      body: JSON.stringify({ monto: parseInt(monto) })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if(data.status === 'ok') {
+        showToast(data.message, 'success');
+        bsModalWebpay.hide();
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        showToast(data.message, 'error');
+      }
+    });
+  }
+
+  // Contacto Interactivo
+  function actualizarContadorContacto(textarea) {
+    const count = textarea.value.length;
+    document.getElementById('contacto-char-count').innerText = `${count} / 300 caracteres`;
+  }
+
+  function enviarFormularioContacto() {
+    const nombre = document.getElementById('contacto-nombre').value.trim();
+    const email = document.getElementById('contacto-email').value.trim();
+    const mensaje = document.getElementById('contacto-mensaje').value.trim();
+    const feedback = document.getElementById('contacto-feedback');
+    const btn = document.getElementById('btn-enviar-contacto');
+
+    feedback.className = 'd-none alert py-2 small mb-3';
+
+    if(!nombre || !email || !mensaje) {
+      feedback.className = 'alert alert-danger py-2 small mb-3';
+      feedback.innerText = 'Por favor completa todos los campos.';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
+
+    fetch('/api/contacto/enviar/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ nombre: nombre, email: email, mensaje: mensaje })
+    })
+    .then(res => res.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Enviar Mensaje';
+
+      if(data.status === 'ok') {
+        feedback.className = 'alert alert-success py-2 small mb-3';
+        feedback.innerText = data.message;
+        document.getElementById('formContactoSuah').reset();
+        document.getElementById('contacto-char-count').innerText = '0 / 300 caracteres';
+        showToast(data.message, 'success');
+      } else {
+        feedback.className = 'alert alert-danger py-2 small mb-3';
+        feedback.innerText = data.message;
+        showToast(data.message, 'error');
+      }
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Enviar Mensaje';
+      feedback.className = 'alert alert-danger py-2 small mb-3';
+      feedback.innerText = 'Ocurrió un error al enviar el mensaje. Intenta nuevamente.';
+    });
+  }
+
+</script>
+{% endblock %}

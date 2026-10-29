@@ -1,0 +1,30 @@
+# Entornos virtuales Python
+venv/
+env/
+ENV/
+.venv/
+
+# Bytecode Python y caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite3
+.pytest_cache/
+
+# Archivos de entorno y credenciales sensibles
+.env
+.env.local
+*.log
+
+# Editores y VS Code
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+
+# Material de referencia/documentación pesada no esencial para despliegue (opcional)
+Documentacion_Y_Referencia/proyectoBiblioteca/
+Documentacion_Y_Referencia/Evaluacion 3 - Constanza Cortes - Marcelo Gonzalez - TIS401.docx
+Documentacion_Y_Referencia/*.zip

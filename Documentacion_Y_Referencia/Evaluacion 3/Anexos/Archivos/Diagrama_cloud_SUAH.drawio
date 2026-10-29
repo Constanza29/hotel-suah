@@ -1,0 +1,198 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="cloud" name="Arquitectura cloud">
+    <mxGraphModel dx="1493" dy="764" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="950" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="fontFamily=Calibri;html=1;whiteSpace=wrap;text;align=center;verticalAlign=middle;fontSize=20;fontColor=#1A365D;" value="&lt;b&gt;Arquitectura cloud objetivo del SUAH: despliegue en AWS con red pública y red privada&lt;/b&gt;" vertex="1">
+          <mxGeometry height="40" width="1400" x="100" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users" parent="1" style="fontFamily=Calibri;html=1;whiteSpace=wrap;container=1;collapsible=0;rounded=1;arcSize=2;fillColor=#F3F6FA;strokeColor=#7A8FA6;verticalAlign=top;spacingTop=12;fontSize=14;fontColor=#1A365D;" value="&lt;b&gt;Usuarios del&amp;nbsp; Sistema&lt;/b&gt;" vertex="1">
+          <mxGeometry height="782" width="250" x="20" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="rec" parent="users" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#1A365D;strokeWidth=1.5;fontSize=12;" value="&lt;i&gt;&lt;font color=&quot;#555555&quot;&gt;«device»&lt;/font&gt;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Recepcionista&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#555555&quot;&gt;Navegador de escritorio&lt;/font&gt;" vertex="1">
+          <mxGeometry height="130.33333333333334" width="210" x="20" y="59.999393939393954" as="geometry" />
+        </mxCell>
+        <mxCell id="lim" parent="users" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#1A365D;strokeWidth=1.5;fontSize=12;" value="&lt;i&gt;&lt;font color=&quot;#555555&quot;&gt;«device»&lt;/font&gt;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Personal de Limpieza&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#555555&quot;&gt;Navegador móvil&lt;/font&gt;" vertex="1">
+          <mxGeometry height="130.33333333333334" width="210" x="20" y="210.0039393939394" as="geometry" />
+        </mxCell>
+        <mxCell id="man" parent="users" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#1A365D;strokeWidth=1.5;fontSize=12;" value="&lt;i&gt;&lt;font color=&quot;#555555&quot;&gt;«device»&lt;/font&gt;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Personal de Mantenimiento&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#555555&quot;&gt;Navegador móvil / escritorio&lt;/font&gt;" vertex="1">
+          <mxGeometry height="130.33333333333334" width="210" x="20" y="362.99848484848485" as="geometry" />
+        </mxCell>
+        <mxCell id="adm" parent="users" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#1A365D;strokeWidth=1.5;fontSize=12;" value="&lt;i&gt;&lt;font color=&quot;#555555&quot;&gt;«device»&lt;/font&gt;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Administrador&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#555555&quot;&gt;Navegador de escritorio&lt;/font&gt;" vertex="1">
+          <mxGeometry height="130.33333333333334" width="210" x="20" y="510.00303030303024" as="geometry" />
+        </mxCell>
+        <mxCell id="internet" parent="1" style="fontFamily=Calibri;html=1;whiteSpace=wrap;ellipse;fillColor=#FFFFFF;strokeColor=#1A365D;strokeWidth=2;fontSize=14;fontColor=#1A365D;" value="&lt;b&gt;Internet&lt;/b&gt;" vertex="1">
+          <mxGeometry height="90" width="120" x="310" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="region" parent="1" style="fontFamily=Calibri;html=1;whiteSpace=wrap;container=1;collapsible=0;rounded=1;arcSize=2;fillColor=#FFFDF8;strokeColor=#E8890C;strokeWidth=3;verticalAlign=top;align=left;spacingLeft=14;spacingTop=8;fontSize=14;fontColor=#B86A00;" value="&lt;b&gt;Nube AWS · Región Sudamérica (modelo IaaS, nube pública)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="820" width="820" x="450" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vpc" parent="region" style="fontFamily=Calibri;html=1;whiteSpace=wrap;container=1;collapsible=0;rounded=1;arcSize=2;fillColor=#FBF9FE;strokeColor=#7B4FBF;dashed=1;dashPattern=8 4;strokeWidth=2;verticalAlign=top;align=right;spacingRight=14;spacingTop=8;fontSize=13;fontColor=#5B34A0;" value="&lt;b&gt;VPC (red virtual privada) 10.0.0.0/16&lt;/b&gt;" vertex="1">
+          <mxGeometry height="600" width="760" x="40" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pub" parent="vpc" style="fontFamily=Calibri;html=1;whiteSpace=wrap;container=1;collapsible=0;rounded=1;arcSize=2;fillColor=#EEF8F1;strokeColor=#2E8B57;dashed=1;strokeWidth=2;verticalAlign=top;align=left;spacingLeft=14;spacingTop=6;fontSize=12;fontColor=#22693F;" value="&lt;b&gt;Subred pública 10.0.1.0/24 (acceso desde Internet solo por HTTPS)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="245" width="690" x="50" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="sgweb" parent="pub" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=6;fillColor=#FDECEC;strokeColor=#C62828;strokeWidth=1.5;fontSize=10;fontColor=#9B1C1C;" value="SG-Web&lt;br&gt;(firewall)&lt;br&gt;&lt;br&gt;443 / 80: abiertos&lt;br&gt;22: solo IP&lt;br&gt;del equipo" vertex="1">
+          <mxGeometry height="130" width="105" x="17" y="49.5" as="geometry" />
+        </mxCell>
+        <mxCell id="ec2app" parent="pub" style="fontFamily=Calibri;html=1;whiteSpace=wrap;container=1;collapsible=0;rounded=1;arcSize=3;fillColor=#FFFFFF;strokeColor=#1A365D;strokeWidth=2;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontSize=12;fontColor=#1A365D;" value="&lt;b&gt;«device» EC2 · Servidor de aplicación (Ubuntu, IP pública)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="185" width="530" x="140" y="41" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx" parent="ec2app" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=5;fillColor=#F7F9FC;strokeColor=#555555;fontSize=11;" value="«executionEnvironment» Nginx&lt;br&gt;«component» Frontend React&lt;br&gt;HTTPS (Let&#39;s Encrypt)&lt;br&gt;Proxy inverso /api" vertex="1">
+          <mxGeometry height="125" width="220" x="20" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="node" parent="ec2app" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=5;fillColor=#F7F9FC;strokeColor=#555555;fontSize=11;" value="«executionEnvironment» Node.js + PM2&lt;br&gt;«component» API REST Express&lt;br&gt;Autenticación JWT + RBAC · Reservas&lt;br&gt;Pagos y check-out · Mantenimiento" vertex="1">
+          <mxGeometry height="125" width="220" x="290" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="priv" parent="vpc" style="fontFamily=Calibri;html=1;whiteSpace=wrap;container=1;collapsible=0;rounded=1;arcSize=2;fillColor=#EEF4FB;strokeColor=#1F6FB2;dashed=1;strokeWidth=2;verticalAlign=top;align=left;spacingLeft=14;spacingTop=6;fontSize=12;fontColor=#17558A;" value="&lt;b&gt;Subred privada 10.0.2.0/24 (sin acceso desde Internet)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="250" width="690" x="50" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="sgdb" parent="priv" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=6;fillColor=#FDECEC;strokeColor=#C62828;strokeWidth=1.5;fontSize=10;fontColor=#9B1C1C;" value="SG-DB&lt;br&gt;(firewall)&lt;br&gt;&lt;br&gt;3306: solo&lt;br&gt;desde SG-Web&lt;br&gt;22: solo vía&lt;br&gt;servidor app" vertex="1">
+          <mxGeometry height="140" width="105" x="15" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ec2db" parent="priv" style="fontFamily=Calibri;html=1;whiteSpace=wrap;container=1;collapsible=0;rounded=1;arcSize=3;fillColor=#FFFFFF;strokeColor=#1A365D;strokeWidth=2;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontSize=12;fontColor=#1A365D;" value="&lt;b&gt;«device» EC2 · Servidor de datos (Ubuntu, solo IP privada)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="185" width="530" x="140" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ebs" parent="ec2db" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=8;fillColor=#EEF8F1;strokeColor=#2E8B57;strokeWidth=1.5;fontSize=11;" value="Volumen EBS&lt;br&gt;cifrado AES-256&lt;br&gt;(RNF-02)" vertex="1">
+          <mxGeometry height="90" width="150" x="50" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="db" parent="ec2db" style="fontFamily=Calibri;html=1;whiteSpace=wrap;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#F7F9FC;strokeColor=#555555;fontSize=11;" value="«database»&lt;br&gt;MySQL&lt;br&gt;SUAH_DB" vertex="1">
+          <mxGeometry height="125" width="160" x="320" y="42.5" as="geometry" />
+        </mxCell>
+        <mxCell id="igw" parent="region" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#5B34A0;strokeWidth=1.5;fontSize=10;fontColor=#5B34A0;" value="&lt;b&gt;Internet&lt;br&gt;Gateway&lt;/b&gt;" vertex="1">
+          <mxGeometry height="85" width="60" x="15" y="177" as="geometry" />
+        </mxCell>
+        <mxCell id="snap" parent="region" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=6;dashed=1;fillColor=#FFFFFF;strokeColor=#2E8B57;strokeWidth=1.5;fontSize=11;" value="Snapshots de EBS&lt;br&gt;(respaldos programados)" vertex="1">
+          <mxGeometry height="95" width="210" x="250" y="695" as="geometry" />
+        </mxCell>
+        <mxCell id="equipo" parent="1" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#777777;fontSize=13;fontColor=#444444;" value="&lt;b&gt;Equipo de desarrollo&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#555555&quot; style=&quot;font-size:10px&quot;&gt;Administración por SSH 22&lt;br&gt;(solo desde la IP del equipo)&lt;/font&gt;" vertex="1">
+          <mxGeometry height="130" width="260" x="1320" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="github" parent="1" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#777777;fontSize=12;" value="&lt;b&gt;GitHub&lt;/b&gt;&lt;br&gt;Código fuente y versiones" vertex="1">
+          <mxGeometry height="120" width="260" x="1320" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="leg" parent="1" style="fontFamily=Calibri;html=1;whiteSpace=wrap;container=1;collapsible=0;rounded=1;arcSize=3;fillColor=#FFFFFF;strokeColor=#999999;verticalAlign=top;align=left;spacingLeft=14;spacingTop=8;fontSize=12;" value="&lt;b&gt;Simbología&lt;/b&gt;" vertex="1">
+          <mxGeometry height="300" width="270" x="1310" y="610" as="geometry" />
+        </mxCell>
+        <mxCell id="legt0" parent="leg" style="fontFamily=Calibri;html=1;whiteSpace=wrap;text;align=left;verticalAlign=middle;fontSize=11;" value="Uso del sistema" vertex="1">
+          <mxGeometry height="24" width="160" x="100" y="58" as="geometry" />
+        </mxCell>
+        <mxCell id="legt1" parent="leg" style="fontFamily=Calibri;html=1;whiteSpace=wrap;text;align=left;verticalAlign=middle;fontSize=11;" value="Desarrollo y administración" vertex="1">
+          <mxGeometry height="24" width="160" x="100" y="98" as="geometry" />
+        </mxCell>
+        <mxCell id="legt2" parent="leg" style="fontFamily=Calibri;html=1;whiteSpace=wrap;text;align=left;verticalAlign=middle;fontSize=11;" value="Respaldos" vertex="1">
+          <mxGeometry height="24" width="160" x="100" y="138" as="geometry" />
+        </mxCell>
+        <mxCell id="legt3" parent="leg" style="fontFamily=Calibri;html=1;whiteSpace=wrap;text;align=left;verticalAlign=middle;fontSize=11;" value="Subred pública" vertex="1">
+          <mxGeometry height="24" width="160" x="100" y="178" as="geometry" />
+        </mxCell>
+        <mxCell id="legt4" parent="leg" style="fontFamily=Calibri;html=1;whiteSpace=wrap;text;align=left;verticalAlign=middle;fontSize=11;" value="Subred privada" vertex="1">
+          <mxGeometry height="24" width="160" x="100" y="218" as="geometry" />
+        </mxCell>
+        <mxCell id="legt5" parent="leg" style="fontFamily=Calibri;html=1;whiteSpace=wrap;text;align=left;verticalAlign=middle;fontSize=11;" value="Firewall (Security Group)" vertex="1">
+          <mxGeometry height="24" width="160" x="100" y="258" as="geometry" />
+        </mxCell>
+        <mxCell id="legb0" parent="leg" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=10;fillColor=#EEF8F1;strokeColor=#2E8B57;dashed=1;strokeWidth=1.5;" value="" vertex="1">
+          <mxGeometry height="32" width="70" x="20" y="174" as="geometry" />
+        </mxCell>
+        <mxCell id="legb1" parent="leg" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=10;fillColor=#EEF4FB;strokeColor=#1F6FB2;dashed=1;strokeWidth=1.5;" value="" vertex="1">
+          <mxGeometry height="32" width="70" x="20" y="214" as="geometry" />
+        </mxCell>
+        <mxCell id="legb2" parent="leg" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=10;fillColor=#FDECEC;strokeColor=#C62828;dashed=0;strokeWidth=1.5;" value="" vertex="1">
+          <mxGeometry height="32" width="70" x="20" y="254" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="users" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontFamily=Calibri;endArrow=block;endFill=1;strokeColor=#1A365D;strokeWidth=2;fontColor=#1A365D;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;entryX=0;entryY=0.5;" target="internet" value="HTTPS 443">
+          <mxGeometry relative="1" x="0.3939" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="internet" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontFamily=Calibri;endArrow=block;endFill=1;strokeColor=#1A365D;strokeWidth=2;fontColor=#1A365D;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="igw" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="igw" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontFamily=Calibri;endArrow=block;endFill=1;strokeColor=#1A365D;strokeWidth=2;fontColor=#1A365D;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="sgweb" value="">
+          <mxGeometry relative="1" x="-0.0154" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="sgweb" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontFamily=Calibri;endArrow=block;endFill=1;strokeColor=#1A365D;strokeWidth=2;fontColor=#1A365D;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.28;" target="nginx" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="nginx" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontFamily=Calibri;endArrow=block;endFill=1;strokeColor=#1A365D;strokeWidth=2;fontColor=#1A365D;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;" target="node" value="HTTP local">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontFamily=Calibri;endArrow=block;endFill=1;strokeColor=#1A365D;strokeWidth=2;fontColor=#1A365D;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.414;entryY=-0.014;entryDx=0;entryDy=0;entryPerimeter=0;" value="TCP 3306 (SQL)&lt;br&gt;solo tráfico interno">
+          <mxGeometry relative="1" x="-0.0055" as="geometry">
+            <Array as="points">
+              <mxPoint x="1081" y="477.9" />
+              <mxPoint x="1077.2" y="477.9" />
+            </Array>
+            <mxPoint x="1081" y="399" as="sourcePoint" />
+            <mxPoint x="1077.2400000000002" y="555.75" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontFamily=Calibri;endArrow=none;strokeColor=#2E8B57;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" target="db" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="880" y="620" as="sourcePoint" />
+            <mxPoint x="1000" y="630" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="ebs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontFamily=Calibri;endArrow=block;endFill=1;dashed=1;strokeColor=#2E8B57;strokeWidth=1.5;fontColor=#2E8B57;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="snap" value="Respaldo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="equipo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontFamily=Calibri;endArrow=block;endFill=1;dashed=1;strokeColor=#555555;strokeWidth=1.5;fontColor=#555555;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.769;entryX=1;entryY=0.135;" target="ec2app" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="equipo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontFamily=Calibri;endArrow=block;endFill=1;dashed=1;strokeColor=#555555;strokeWidth=1.5;fontColor=#555555;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="github" value="git push">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="github" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontFamily=Calibri;endArrow=block;endFill=1;dashed=1;strokeColor=#555555;strokeWidth=1.5;fontColor=#555555;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=1;entryY=0.52;" target="node" value="Despliegue (git pull)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" edge="1" parent="1" source="wBGvboBmivF1JP6yIFh2-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontFamily=Calibri;endArrow=block;endFill=1;dashed=1;strokeColor=#999999;strokeWidth=1.5;fontColor=#999999;fontSize=10;labelBackgroundColor=#FFFFFF;entryX=0.5;entryY=1;" target="users" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="145" y="800" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="le0" edge="1" parent="1" style="html=1;endArrow=block;endFill=1;strokeColor=#1A365D;strokeWidth=2;fontColor=#1A365D;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1330" y="680" as="sourcePoint" />
+            <mxPoint x="1400" y="680" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="le1" edge="1" parent="1" style="html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#555555;strokeWidth=1.5;fontColor=#555555;fontSize=10;labelBackgroundColor=#FFFFFF;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1330" y="720" as="sourcePoint" />
+            <mxPoint x="1400" y="720" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="le2" edge="1" parent="1" style="html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#2E8B57;strokeWidth=1.5;fontColor=#2E8B57;fontSize=10;labelBackgroundColor=#FFFFFF;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1330" y="760" as="sourcePoint" />
+            <mxPoint x="1400" y="760" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wBGvboBmivF1JP6yIFh2-7" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontFamily=Calibri;endArrow=block;endFill=1;dashed=1;strokeColor=#999999;strokeWidth=1.5;fontColor=#999999;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=0;" target="wBGvboBmivF1JP6yIFh2-6" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="145" y="800" as="sourcePoint" />
+            <mxPoint x="145" y="892" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wBGvboBmivF1JP6yIFh2-6" parent="1" style="fontFamily=Calibri;html=1;whiteSpace=wrap;rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#1A365D;strokeWidth=1.5;fontSize=12;" value="&lt;i&gt;&lt;font color=&quot;#555555&quot;&gt;«device»&lt;/font&gt;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Huesped&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#555555&quot;&gt;Navegador de escritorio/movil&lt;/font&gt;" vertex="1">
+          <mxGeometry height="110" width="210" x="40" y="770" as="geometry" />
+        </mxCell>
+        <mxCell id="wBGvboBmivF1JP6yIFh2-8" edge="1" parent="1" source="users" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontFamily=Calibri;endArrow=block;endFill=1;strokeColor=#1A365D;strokeWidth=2;fontColor=#1A365D;fontSize=10;fontStyle=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.917;entryX=0.5;entryY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryDx=0;entryDy=0;" target="internet" value="HTTPS 443">
+          <mxGeometry relative="1" x="-1" y="-40" as="geometry">
+            <mxPoint x="-40" y="-40" as="offset" />
+            <mxPoint x="340" y="827" as="sourcePoint" />
+            <mxPoint x="380" y="790" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wBGvboBmivF1JP6yIFh2-10" connectable="0" parent="wBGvboBmivF1JP6yIFh2-8" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="HTTPS 443" vertex="1">
+          <mxGeometry relative="1" x="0.5707" y="-2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
