@@ -31,4 +31,5 @@ urlpatterns = [
     path('api/aseo/<str:numero>/', views.cambiar_estado_aseo, name='cambiar_estado_aseo'),
     path('api/resolver-mantenimiento/<str:numero>/', views.resolver_mantenimiento, name='resolver_mantenimiento'),
     path('api/contacto/enviar/', views.enviar_mensaje_contacto_api, name='enviar_mensaje_contacto'),
+    path('api/recepcion/consultar-disponibilidad/', views.consultar_disponibilidad_recepcion_api, name='consultar_disponibilidad_recepcion'),
 ]

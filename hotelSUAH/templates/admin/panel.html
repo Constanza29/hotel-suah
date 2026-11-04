@@ -101,7 +101,7 @@
     <!-- Main: Matriz de Habitaciones -->
     <div class="col-12 col-lg-9">
       <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
-        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 border-bottom pb-3 mb-4">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 border-bottom pb-3 mb-3">
           <h2 class="h5 fw-bold text-dark mb-0">
             <i class="bi bi-grid-3x3-gap-fill text-suah-gold me-2"></i>Matriz de Habitaciones (CU-01)
           </h2>
@@ -110,6 +110,35 @@
             <span class="badge bg-light text-dark border">Piso 2: Suite (201-208)</span>
             <span class="badge bg-light text-dark border">Piso 3: Premium (301-308)</span>
           </div>
+        </div>
+
+        <!-- Filtro por Fechas (Diagrama CU-01: ¿Filtra con fechas? -> RN-01, RN-02, RN-03) -->
+        <div class="card bg-light border-0 p-3 rounded-3 mb-4">
+          <div class="row g-2 align-items-center">
+            <div class="col-12 col-md-3">
+              <span class="small fw-bold text-dark d-block">
+                <i class="bi bi-funnel-fill text-primary me-1"></i>Consultar Disponibilidad:
+              </span>
+              <small class="text-muted" style="font-size: 0.73rem;">Valida cruces y bloqueos en vivo</small>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small fw-semibold mb-0" style="font-size: 0.72rem;">Fecha Entrada (Check-In)</label>
+              <input type="date" id="filtro-fecha-desde" class="form-control form-control-sm">
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small fw-semibold mb-0" style="font-size: 0.72rem;">Fecha Salida (Check-Out)</label>
+              <input type="date" id="filtro-fecha-hasta" class="form-control form-control-sm">
+            </div>
+            <div class="col-12 col-md-3 d-flex gap-1 align-items-end pt-md-3">
+              <button onclick="consultarDisponibilidadFechasCU01()" class="btn btn-primary btn-sm fw-bold w-100 shadow-sm">
+                <i class="bi bi-search me-1"></i> Filtrar Fechas
+              </button>
+              <button onclick="limpiarFiltroFechasCU01()" title="Restablecer a Hoy" class="btn btn-outline-secondary btn-sm fw-semibold">
+                <i class="bi bi-arrow-counterclockwise"></i>
+              </button>
+            </div>
+          </div>
+          <div id="filtro-resultado-msg" class="d-none small alert py-1 px-2 mt-2 mb-0"></div>
         </div>
 
         <!-- Grid de Tarjetas Bootstrap -->
@@ -522,15 +551,27 @@
   ];
 
   function paintUI() {
-    // 1. Matriz de Habitaciones
+    // 1. Matriz de Habitaciones (CU-01)
     const matrix = document.getElementById('room-matrix');
     if (matrix) {
       matrix.innerHTML = '';
       allRooms.forEach(r => {
         const c = colors[r.status] || colors['Disponible'];
+        let rangoBadge = '';
+        let opacityClass = '';
+
+        if(filtroFechasActivo) {
+          if(r.disponible_rango) {
+            rangoBadge = `<span class="badge bg-success small mt-1"><i class="bi bi-check-circle me-1"></i>Apta para Rango</span>`;
+          } else {
+            opacityClass = 'opacity-75';
+            rangoBadge = `<span class="badge bg-secondary small mt-1" title="${r.motivo_bloqueo || 'No disponible'}"><i class="bi bi-x-circle me-1"></i>Ocupada / Bloqueada</span>`;
+          }
+        }
+
         matrix.innerHTML += `
           <div class="col">
-            <div onclick="openRoomModal('${r.id}')" class="card h-100 room-card ${c.border} ${c.bgLight} p-3 position-relative shadow-sm">
+            <div onclick="openRoomModal('${r.id}')" class="card h-100 room-card ${c.border} ${c.bgLight} ${opacityClass} p-3 position-relative shadow-sm">
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <span class="h5 fw-bold text-dark mb-0">${r.id}</span>
                 <span class="badge ${c.badge} text-uppercase">${statusLabels[r.status] || r.status}</span>
@@ -538,6 +579,7 @@
               <div class="mt-auto">
                 <p class="small text-muted mb-0">${r.type}</p>
                 <p class="small fw-bold text-dark mb-0">$${r.price.toLocaleString()} CLP</p>
+                ${rangoBadge}
               </div>
             </div>
           </div>
@@ -1126,6 +1168,58 @@
         showToast(data.message || 'Error al reportar desperfecto', 'error');
       }
     });
+  }
+
+
+  // --- CONSULTA DISPONIBILIDAD CON FILTRO POR FECHAS (CU-01) ---
+  let filtroFechasActivo = false;
+
+  function consultarDisponibilidadFechasCU01() {
+    const desde = document.getElementById('filtro-fecha-desde').value;
+    const hasta = document.getElementById('filtro-fecha-hasta').value;
+    const msg = document.getElementById('filtro-resultado-msg');
+
+    if(!desde || !hasta) {
+      return showToast('Por favor selecciona fecha de entrada y salida para filtrar.', 'warning');
+    }
+
+    if(hasta <= desde) {
+      return showToast('La fecha de salida debe ser posterior a la fecha de entrada.', 'error');
+    }
+
+    fetch(`/api/recepcion/consultar-disponibilidad/?desde=${desde}&hasta=${hasta}`)
+      .then(res => res.json())
+      .then(data => {
+        if(data.status === 'ok') {
+          filtroFechasActivo = true;
+          allRooms = data.habitaciones;
+          paintUI(true);
+
+          const disponiblesRango = data.habitaciones.filter(h => h.disponible_rango).length;
+          msg.className = 'small alert alert-info py-1 px-3 mt-2 mb-0 d-flex justify-content-between align-items-center';
+          msg.innerHTML = `<span><strong>CU-01 / RN-01:</strong> Del <strong>${desde}</strong> al <strong>${hasta}</strong> hay <strong>${disponiblesRango} de ${data.habitaciones.length}</strong> habitaciones disponibles.</span> <span class="badge bg-primary">Filtro Activo</span>`;
+          showToast(`Disponibilidad calculada: ${disponiblesRango} habitaciones aptas.`, 'info');
+        } else {
+          showToast(data.message, 'error');
+        }
+      })
+      .catch(() => showToast('Error al consultar disponibilidad por fecha.', 'error'));
+  }
+
+  function limpiarFiltroFechasCU01() {
+    document.getElementById('filtro-fecha-desde').value = '';
+    document.getElementById('filtro-fecha-hasta').value = '';
+    const msg = document.getElementById('filtro-resultado-msg');
+    if (msg) msg.className = 'd-none';
+
+    fetch('/api/recepcion/consultar-disponibilidad/')
+      .then(res => res.json())
+      .then(data => {
+        filtroFechasActivo = false;
+        allRooms = data.habitaciones;
+        paintUI(false);
+        showToast('Matriz restablecida a estado en tiempo real (Hoy).', 'info');
+      });
   }
 
 </script>

@@ -637,3 +637,75 @@ def enviar_mensaje_contacto_api(request):
         'status': 'ok',
         'message': f'¡Gracias {nombre}! Tu mensaje ha sido enviado exitosamente a nuestro equipo de atención.'
     })
+
+
+@login_required
+def consultar_disponibilidad_recepcion_api(request):
+    """
+    CU-01: Consulta disponibilidad e inventario en tiempo real con filtro por fecha.
+    Aplica RN-01 (sin superposición de fechas), RN-02 (limpiezas pendientes), RN-03 (bloqueos por mantenimiento).
+    """
+    if not (es_recepcionista(request.user) or request.user.is_superuser):
+        return HttpResponseForbidden("Acceso denegado: solo personal de Recepción.")
+
+    desde_str = request.GET.get('desde')
+    hasta_str = request.GET.get('hasta')
+
+    habitaciones = Habitación.objects.all().select_related('tipo').order_by('numero')
+    
+    # Si no ingresó fechas, retorna el estado actual en vivo
+    if not desde_str or not hasta_str:
+        data = []
+        for h in habitaciones:
+            data.append({
+                'id': h.numero,
+                'type': h.tipo.nombre,
+                'price': int(h.tipo.precio_base),
+                'status': h.estado,
+                'ticket': h.ticket_falla or None,
+                'disponible_rango': h.estado == 'Disponible'
+            })
+        return JsonResponse({'status': 'ok', 'modo': 'en_vivo', 'habitaciones': data})
+
+    try:
+        f_desde = datetime.datetime.strptime(desde_str, '%Y-%m-%d').date()
+        f_hasta = datetime.datetime.strptime(hasta_str, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'status': 'error', 'message': 'Formato de fecha inválido (AAAA-MM-DD).'}, status=400)
+
+    if f_hasta <= f_desde:
+        return JsonResponse({'status': 'error', 'message': 'La fecha de salida debe ser posterior a la de entrada.'}, status=400)
+
+    # RN-01: Buscar habitaciones con reservas cruzadas activas en ese rango
+    reservas_solapadas = Reserva.objects.filter(
+        estado__in=['Confirmada', 'CheckIn'],
+        fecha_checkin__lt=f_hasta,
+        fecha_checkout__gt=f_desde
+    ).values_list('habitacion_id', flat=True)
+
+    data = []
+    for h in habitaciones:
+        # RN-03: Si está en mantenimiento, no está disponible
+        # RN-02: Si está sucia o en limpieza en este instante, o si se cruza con otra reserva (RN-01)
+        tiene_reserva_cruzada = h.id in reservas_solapadas
+        
+        # Determinar si está disponible en ese rango específico
+        disponible_en_rango = (not tiene_reserva_cruzada) and (h.estado != 'Mantenimiento')
+
+        data.append({
+            'id': h.numero,
+            'type': h.tipo.nombre,
+            'price': int(h.tipo.precio_base),
+            'status': h.estado,
+            'ticket': h.ticket_falla or None,
+            'disponible_rango': disponible_en_rango,
+            'motivo_bloqueo': 'Reserva confirmada en el rango (RN-01)' if tiene_reserva_cruzada else ('Bloqueada por falla (RN-03)' if h.estado == 'Mantenimiento' else None)
+        })
+
+    return JsonResponse({
+        'status': 'ok',
+        'modo': 'filtro_fechas',
+        'desde': desde_str,
+        'hasta': hasta_str,
+        'habitaciones': data
+    })
