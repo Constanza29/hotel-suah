@@ -319,9 +319,16 @@ def get_room_folio(request, numero):
     folio_data = None
     if reserva_activa and hasattr(reserva_activa, 'folio'):
         f = reserva_activa.folio
+        dias = max(1, (reserva_activa.fecha_checkout - reserva_activa.fecha_checkin).days)
         folio_data = {
+            'codigo_reserva': reserva_activa.codigo_reserva,
             'guest': reserva_activa.cliente.nombre_completo,
             'email': reserva_activa.cliente.email,
+            'rut': reserva_activa.cliente.rut or 'No informado',
+            'telefono': reserva_activa.cliente.telefono or 'No informado',
+            'checkin': reserva_activa.fecha_checkin.strftime('%d/%m/%Y'),
+            'checkout': reserva_activa.fecha_checkout.strftime('%d/%m/%Y'),
+            'noches': dias,
             'cargos': [{'desc': c.descripcion, 'amount': int(c.monto)} for c in f.cargos.all()],
             'payments': [{'desc': a.descripcion, 'amount': int(a.monto)} for a in f.abonos.all()],
             'total_charges': int(f.total_cargos),
@@ -677,17 +684,17 @@ def consultar_disponibilidad_recepcion_api(request):
         return JsonResponse({'status': 'error', 'message': 'La fecha de salida debe ser posterior a la de entrada.'}, status=400)
 
     # RN-01: Buscar habitaciones con reservas cruzadas activas en ese rango
-    reservas_solapadas = Reserva.objects.filter(
+    reservas_solapadas = set(Reserva.objects.filter(
         estado__in=['Confirmada', 'CheckIn'],
         fecha_checkin__lt=f_hasta,
         fecha_checkout__gt=f_desde
-    ).values_list('habitacion_id', flat=True)
+    ).values_list('habitacion__numero', flat=True))
 
     data = []
     for h in habitaciones:
         # RN-03: Si está en mantenimiento, no está disponible
         # RN-02: Si está sucia o en limpieza en este instante, o si se cruza con otra reserva (RN-01)
-        tiene_reserva_cruzada = h.id in reservas_solapadas
+        tiene_reserva_cruzada = h.numero in reservas_solapadas
         
         # Determinar si está disponible en ese rango específico
         disponible_en_rango = (not tiene_reserva_cruzada) and (h.estado != 'Mantenimiento')

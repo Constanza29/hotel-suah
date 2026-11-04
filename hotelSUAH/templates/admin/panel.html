@@ -705,9 +705,25 @@
       actionsHtml = `
         <div>
           <div class="card bg-light border-0 p-3 mb-3 rounded-3">
-            <div class="row small">
-              <div class="col-sm-6"><span class="text-muted">Huésped:</span> <strong class="text-dark">${f.guest}</strong></div>
-              <div class="col-sm-6 text-sm-end"><span class="text-muted">Email:</span> <span class="text-dark">${f.email}</span></div>
+            <div class="row small g-2">
+              <div class="col-sm-6">
+                <span class="text-muted d-block">Huésped:</span>
+                <strong class="text-dark fs-6">${f.guest}</strong>
+              </div>
+              <div class="col-sm-6 text-sm-end">
+                <span class="text-muted d-block">Código Reserva:</span>
+                <span class="badge bg-primary">${f.codigo_reserva || 'Directo'}</span>
+              </div>
+              <div class="col-sm-6 pt-1">
+                <span class="text-muted">Email:</span> <span class="text-dark">${f.email}</span>
+              </div>
+              <div class="col-sm-6 text-sm-end pt-1">
+                <span class="text-muted">Teléfono:</span> <span class="text-dark">${f.telefono || 'N/A'}</span>
+              </div>
+              <div class="col-12 pt-2 border-top mt-2 d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-calendar-event text-primary me-1"></i><strong>Estadía:</strong> ${f.checkin} ➔ ${f.checkout}</span>
+                <span class="badge bg-dark">${f.noches} ${f.noches === 1 ? 'Noche' : 'Noches'}</span>
+              </div>
             </div>
           </div>
 
