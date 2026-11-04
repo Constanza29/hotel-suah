@@ -384,8 +384,6 @@ def abonar_folio(request, numero):
 
 @login_required
 @require_POST
-@login_required
-@require_POST
 def checkin_manual(request, numero):
     """
     Check-in directo desde mostrador (Recepción) con registro real del huésped.

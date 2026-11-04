@@ -919,9 +919,12 @@
   }
 
   // --- MODAL ABONO / PAGO ---
+  let abonoHabNum = null;
+
   function abrirModalAbono(num, balance, modo = 'total') {
     if(balance <= 0) return showToast('No hay saldo pendiente en esta habitación.', 'info');
 
+    abonoHabNum = num;
     document.getElementById('lbl-abono-hab').innerText = num;
     document.getElementById('lbl-abono-saldo').innerText = `$${balance.toLocaleString()} CLP`;
     
@@ -940,28 +943,54 @@
       inputMonto.placeholder = 'Ingrese monto a abonar';
     }
 
+    // Ocultar modal de detalle para evitar bloqueo de capas de Bootstrap
+    if (bsModalRoom) bsModalRoom.hide();
     bsModalAbono.show();
+    setTimeout(() => inputMonto.focus(), 400);
   }
 
   function enviarAbonoAjax() {
-    const num = document.getElementById('lbl-abono-hab').innerText;
-    const monto = document.getElementById('txt-abono-monto').value;
+    const num = abonoHabNum || document.getElementById('lbl-abono-hab').innerText.trim();
+    const inputMonto = document.getElementById('txt-abono-monto');
+    const monto = inputMonto.value.trim();
     const metodo = document.getElementById('sel-abono-metodo').value;
 
-    if(!monto || monto <= 0) return showToast('Ingrese un monto válido a abonar', 'warning');
+    if(!num) return showToast('No se detectó el número de habitación.', 'error');
+    if(!monto || parseInt(monto) <= 0) return showToast('Por favor ingrese un monto válido a abonar.', 'warning');
+
+    const btnConfirm = event ? event.target.closest('button') : null;
+    if (btnConfirm) {
+      btnConfirm.disabled = true;
+      btnConfirm.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Procesando...';
+    }
 
     fetch(`/api/abono/${num}/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
       body: JSON.stringify({ monto: parseInt(monto), metodo: metodo })
     })
-    .then(res => res.json())
-    .then(data => {
-      showToast(data.message, 'success');
-      bsModalAbono.hide();
-      openRoomModal(num);
+    .then(async res => {
+      const data = await res.json();
+      if(btnConfirm) {
+        btnConfirm.disabled = false;
+        btnConfirm.innerHTML = '<i class="bi bi-cash-stack me-1"></i> Confirmar Pago';
+      }
+
+      if(res.ok && data.status === 'ok') {
+        showToast(data.message, 'success');
+        bsModalAbono.hide();
+        setTimeout(() => openRoomModal(num), 400);
+      } else {
+        showToast(data.message || 'Error al procesar el abono.', 'error');
+      }
     })
-    .catch(() => showToast('Error al procesar el pago', 'error'));
+    .catch(() => {
+      if(btnConfirm) {
+        btnConfirm.disabled = false;
+        btnConfirm.innerHTML = '<i class="bi bi-cash-stack me-1"></i> Confirmar Pago';
+      }
+      showToast('Error de conexión al procesar el pago', 'error');
+    });
   }
 
   // --- COMPROBANTE BOLETA RF-05 ---
