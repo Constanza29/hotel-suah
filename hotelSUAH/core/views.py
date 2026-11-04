@@ -511,7 +511,7 @@ def reportar_falla(request, numero):
         hab.estado = 'Mantenimiento'
         hab.ticket_falla = desc
         hab.save()
-        OrdenMantenimiento.objects.create(habitacion=hab, descripcionfalla=desc, reportado_por=request.user)
+        OrdenMantenimiento.objects.create(habitacion=hab, descripcion_falla=desc, reportado_por=request.user)
 
     return JsonResponse({'status': 'ok', 'message': 'Falla registrada y habitación bloqueada preventivamente.'})
 
@@ -522,7 +522,11 @@ def cambiar_estado_aseo(request, numero):
         return HttpResponseForbidden("Acceso denegado: solo personal de Housekeeping.")
 
     hab = get_object_or_404(Habitación, numero=numero)
-    data = json.loads(request.body)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Datos malformados.'}, status=400)
+
     accion = data.get('accion')
 
     with transaction.atomic():
@@ -533,20 +537,52 @@ def cambiar_estado_aseo(request, numero):
             tarea.estado = 'EnProceso'
             tarea.responsable = request.user
             tarea.save()
+            return JsonResponse({'status': 'ok', 'message': f'Aseo iniciado en habitación {numero}.', 'estado': hab.estado})
+
         elif accion == 'finalizar':
+            checklist = data.get('checklist', {})
+            observaciones = data.get('observaciones', '').strip()
+
             hab.estado = 'Disponible'
             hab.save()
+
+            tarea = TareaLimpieza.objects.filter(habitacion=hab, estado__in=['EnProceso', 'Pendiente']).last()
+            if not tarea:
+                tarea = TareaLimpieza.objects.create(habitacion=hab, responsable=request.user)
+
+            tarea.estado = 'Finalizada'
+            tarea.responsable = request.user
+            tarea.sabanas_cambiadas = bool(checklist.get('sabanas', True))
+            tarea.toallas_repuestas = bool(checklist.get('toallas', True))
+            tarea.bano_desinfectado = bool(checklist.get('bano', True))
+            tarea.amenities_completos = bool(checklist.get('amenities', True))
+            tarea.piso_aspirado = bool(checklist.get('piso', True))
+            if observaciones:
+                tarea.observaciones = observaciones
+            tarea.save()
+
+            return JsonResponse({'status': 'ok', 'message': f'Limpieza e insumos completados. Habitación {numero} marcada como DISPONIBLE.', 'estado': hab.estado})
+
+        elif accion == 'reportar_desperfecto':
+            falla = data.get('falla', 'Desperfecto detectado por personal de aseo (CU-03)')
+            hab.estado = 'Mantenimiento'
+            hab.ticket_falla = falla
+            hab.save()
+
+            OrdenMantenimiento.objects.create(
+                habitacion=hab,
+                descripcion_falla=falla,
+                reportado_por=request.user
+            )
+
             tarea = TareaLimpieza.objects.filter(habitacion=hab, estado='EnProceso').first()
             if tarea:
-                tarea.estado = 'Finalizada'
-                tarea.sabanas_cambiadas = True
-                tarea.toallas_repuestas = True
-                tarea.bano_desinfectado = True
-                tarea.amenities_completos = True
-                tarea.piso_aspirado = True
+                tarea.observaciones = f"Aseo suspendido por desperfecto: {falla}"
                 tarea.save()
 
-    return JsonResponse({'status': 'ok', 'estado': hab.estado})
+            return JsonResponse({'status': 'ok', 'message': f'Desperfecto reportado. Habitación {numero} bloqueada y transferida a Mantenimiento (CU-04).', 'estado': hab.estado})
+
+    return JsonResponse({'status': 'error', 'message': 'Acción no válida.'}, status=400)
 
 @login_required
 @require_POST
