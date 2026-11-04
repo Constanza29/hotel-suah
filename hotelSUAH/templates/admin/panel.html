@@ -538,7 +538,7 @@
     if(activeView) activeView.classList.remove('d-none');
   }
 
-  const allRooms = [
+  let allRooms = [
     {% for h in habitaciones %}
     {
       id: "{{ h.numero }}",
@@ -1263,8 +1263,8 @@
         }
       })
       .catch(err => {
-        console.error("Error en fetch de disponibilidad:", err);
-        showToast('Error de red al consultar disponibilidad.', 'error');
+        console.error("Error al procesar disponibilidad:", err);
+        showToast(`Error al procesar: ${err.message || 'Error de red'}`, 'error');
       });
   }
 
