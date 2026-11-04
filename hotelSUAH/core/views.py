@@ -690,12 +690,13 @@ def consultar_disponibilidad_recepcion_api(request):
 
     data = []
     for h in habitaciones:
-        # RN-03: Si está en mantenimiento, no está disponible
-        # RN-02: Si está sucia o en limpieza en este instante, o si se cruza con otra reserva (RN-01)
         tiene_reserva_cruzada = h.numero in reservas_solapadas
         
-        # Determinar si está disponible en ese rango específico
-        disponible_en_rango = (not tiene_reserva_cruzada) and (h.estado != 'Mantenimiento')
+        # RN-01 (Sin cruce de reserva), RN-02 (No debe estar sucia ni en limpieza) y RN-03 (No debe estar en mantenimiento ni ocupada)
+        # Para que una habitación sea apta y disponible en el rango:
+        # 1. No debe tener reserva que se cruce en ese rango (RN-01)
+        # 2. Su estado físico actual debe ser 'Disponible' (RN-02 y RN-03)
+        es_realmente_disponible = (not tiene_reserva_cruzada) and (h.estado == 'Disponible')
 
         data.append({
             'id': h.numero,
@@ -703,8 +704,8 @@ def consultar_disponibilidad_recepcion_api(request):
             'price': int(h.tipo.precio_base),
             'status': h.estado,
             'ticket': h.ticket_falla or None,
-            'disponible_rango': disponible_en_rango,
-            'motivo_bloqueo': 'Reserva confirmada en el rango (RN-01)' if tiene_reserva_cruzada else ('Bloqueada por falla (RN-03)' if h.estado == 'Mantenimiento' else None)
+            'disponible_rango': es_realmente_disponible,
+            'motivo_bloqueo': 'Reserva cruzada (RN-01)' if tiene_reserva_cruzada else (f'Estado actual: {h.estado} (RN-02/RN-03)' if h.estado != 'Disponible' else None)
         })
 
     return JsonResponse({
