@@ -751,7 +751,9 @@
         document.getElementById('cli-mfa-email-display').innerText = data.email;
         document.getElementById('cli-mfa-tel-display').innerText = data.telefono_oculto ? `SMS enviado a ${data.telefono_oculto}` : 'Notificación de seguridad enviada al dispositivo registrado';
         document.getElementById('cli-mfa-qr-img').src = `data:image/png;base64,${data.qr_b64}`;
-        document.getElementById('cli-mfa-demo-code').innerText = data.codigo_demo;
+        if (document.getElementById('cli-mfa-demo-code')) {
+          document.getElementById('cli-mfa-demo-code').innerText = data.codigo_demo;
+        }
         document.getElementById('cli-mfa-otp').value = '';
 
         // Cambiar vistas
