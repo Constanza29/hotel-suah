@@ -14,6 +14,7 @@ from reservas.models import Reserva, Cliente, Folio, Cargo, Abono
 from operaciones.models import TareaLimpieza, OrdenMantenimiento
 from core.security_validators import validar_politica_contrasena_chile
 from core.rut_and_email_validators import validar_documento_identidad, validar_correo_real, validar_telefono_chileno
+from core.mfa_service import generar_datos_mfa, validar_codigo_mfa
 
 # ========================================================
 # FUNCIONES AUXILIARES DE CONTROL DE ACCESO (RBAC)
@@ -144,17 +145,55 @@ def cliente_login_api(request):
     except json.JSONDecodeError:
         return JsonResponse({'status': 'error', 'message': 'Datos malformados.'}, status=400)
 
+    paso = data.get('paso', 'credenciales') # 'credenciales' o 'mfa'
     email = data.get('email', '').strip().lower()
-    password = data.get('password', '')
 
-    user = authenticate(request, username=email, password=password)
-    if user is not None:
-        login(request, user)
-        cliente = Cliente.objects.filter(email=email).first()
-        nombre = cliente.nombre_completo if cliente else user.first_name or user.username
-        return JsonResponse({'status': 'ok', 'nombre': nombre, 'email': email})
-    else:
-        return JsonResponse({'status': 'error', 'message': 'Correo o contraseña incorrectos. Por favor verifique sus datos.'}, status=400)
+    if paso == 'credenciales':
+        password = data.get('password', '')
+        user = authenticate(request, username=email, password=password)
+        if user is not None:
+            # Credenciales primarias válidas -> Generar datos MFA (QR y código OTP)
+            mfa_data = generar_datos_mfa(user)
+            request.session['mfa_pending_user_id'] = user.id
+            cliente = Cliente.objects.filter(email=email).first()
+            tel_oculto = ""
+            if cliente and cliente.telefono:
+                t = cliente.telefono
+                tel_oculto = t[:4] + " **** " + t[-4:] if len(t) >= 8 else t
+
+            return JsonResponse({
+                'status': 'mfa_required',
+                'message': 'Credenciales verificadas. Ingrese el segundo factor de autenticación (MFA).',
+                'email': email,
+                'telefono_oculto': tel_oculto,
+                'qr_b64': mfa_data['qr_b64'],
+                'codigo_demo': mfa_data['current_otp'],
+                'secret': mfa_data['secret']
+            })
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Correo o contraseña incorrectos. Por favor verifique sus datos.'}, status=400)
+
+    elif paso == 'mfa':
+        codigo_otp = data.get('codigo_otp', '').strip()
+        user_id = request.session.get('mfa_pending_user_id')
+        if not user_id:
+            return JsonResponse({'status': 'error', 'message': 'La sesión de autenticación ha expirado. Reintente desde el inicio.'}, status=400)
+
+        user = User.objects.filter(id=user_id).first()
+        if not user:
+            return JsonResponse({'status': 'error', 'message': 'Usuario no válido.'}, status=400)
+
+        if validar_codigo_mfa(user, codigo_otp):
+            login(request, user)
+            if 'mfa_pending_user_id' in request.session:
+                del request.session['mfa_pending_user_id']
+            cliente = Cliente.objects.filter(email=user.email).first()
+            nombre = cliente.nombre_completo if cliente else user.first_name or user.username
+            return JsonResponse({'status': 'ok', 'nombre': nombre, 'email': user.email, 'message': '¡Autenticación en 2 pasos exitosa!'})
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Código de seguridad incorrecto o expirado (30s). Intente nuevamente.'}, status=400)
+
+    return JsonResponse({'status': 'error', 'message': 'Paso no reconocido.'}, status=400)
 
 @require_POST
 def cliente_logout_api(request):
@@ -261,18 +300,61 @@ def huesped_abono_online(request):
 # ========================================================
 
 def login_admin_view(request):
-    if request.user.is_authenticated and request.user.groups.filter(name__in=['recepcion', 'housekeeping', 'mantenimiento']).exists():
+    if request.user.is_authenticated and (request.user.groups.filter(name__in=['recepcion', 'housekeeping', 'mantenimiento']).exists() or request.user.is_superuser):
         return redirect('panel_operativo')
 
     if request.method == 'POST':
-        email = request.POST.get('email', '').strip()
-        password = request.POST.get('password', '')
-        user = authenticate(request, username=email, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect('panel_operativo')
-        else:
-            return render(request, 'admin/login.html', {'error': 'Credenciales incorrectas o usuario no autorizado.'})
+        paso = request.POST.get('paso', 'credenciales')
+
+        if paso == 'credenciales':
+            email = request.POST.get('email', '').strip()
+            password = request.POST.get('password', '')
+            user = authenticate(request, username=email, password=password)
+            if user is not None:
+                # Validar que pertenezca a staff o admin
+                if not (user.is_superuser or user.groups.filter(name__in=['recepcion', 'housekeeping', 'mantenimiento']).exists()):
+                    return render(request, 'admin/login.html', {'error': 'Acceso denegado: cuenta no pertenece al personal del hotel.'})
+
+                mfa_data = generar_datos_mfa(user)
+                request.session['admin_mfa_user_id'] = user.id
+                return render(request, 'admin/login.html', {
+                    'mfa_active': True,
+                    'user_email': user.email or user.username,
+                    'qr_b64': mfa_data['qr_b64'],
+                    'codigo_demo': mfa_data['current_otp'],
+                    'secret': mfa_data['secret']
+                })
+            else:
+                return render(request, 'admin/login.html', {'error': 'Credenciales incorrectas o usuario no autorizado.'})
+
+        elif paso == 'mfa':
+            user_id = request.session.get('admin_mfa_user_id')
+            codigo_otp = request.POST.get('codigo_otp', '').strip()
+
+            if not user_id:
+                return render(request, 'admin/login.html', {'error': 'La sesión MFA expiró. Ingrese nuevamente.'})
+
+            user = User.objects.filter(id=user_id).first()
+            if not user:
+                return render(request, 'admin/login.html', {'error': 'Usuario no válido.'})
+
+            if validar_codigo_mfa(user, codigo_otp):
+                login(request, user)
+                if 'admin_mfa_user_id' in request.session:
+                    del request.session['admin_mfa_user_id']
+                return redirect('panel_operativo')
+            else:
+                # Re-render MFA with error
+                mfa_data = generar_datos_mfa(user)
+                return render(request, 'admin/login.html', {
+                    'mfa_active': True,
+                    'user_email': user.email or user.username,
+                    'qr_b64': mfa_data['qr_b64'],
+                    'codigo_demo': mfa_data['current_otp'],
+                    'secret': mfa_data['secret'],
+                    'error': 'Código de seguridad incorrecto o expirado (30s). Ingrese el código vigente.'
+                })
+
     return render(request, 'admin/login.html')
 
 def logout_admin_view(request):

@@ -415,7 +415,7 @@
 
       <div class="modal-body p-4">
         
-        <!-- Formulario Login -->
+        <!-- Formulario Login Paso 1: Credenciales -->
         <div id="form-login-cliente">
           <div class="text-center mb-3">
             <h5 class="fw-bold text-dark mb-1">Acceso Huéspedes</h5>
@@ -429,8 +429,50 @@
             <label class="form-label small fw-bold">Contraseña</label>
             <input type="password" id="cli-login-pass" placeholder="••••••••" class="form-control">
           </div>
-          <button onclick="clientLoginSubmit()" class="btn btn-warning w-100 fw-bold shadow-sm text-dark py-2">
-            Ingresar a Mi Cuenta
+          <button id="btn-cli-login" onclick="clientLoginSubmit()" class="btn btn-warning w-100 fw-bold shadow-sm text-dark py-2">
+            Continuar a Validación MFA <i class="bi bi-shield-lock-fill ms-1"></i>
+          </button>
+        </div>
+
+        <!-- Formulario Login Paso 2: Segundo Factor MFA -->
+        <div id="form-mfa-cliente" class="d-none">
+          <div class="text-center mb-3">
+            <span class="badge bg-primary text-uppercase mb-1">Paso 2: Segundo Factor (MFA)</span>
+            <h5 class="fw-bold text-dark mb-1">Verificación en 2 Pasos</h5>
+            <small class="text-muted" id="cli-mfa-email-display"></small>
+          </div>
+
+          <!-- Alerta Simulación Móvil -->
+          <div class="card bg-light border-0 p-2.5 rounded-3 mb-3 text-center" style="font-size: 0.78rem;">
+            <span class="text-dark fw-bold d-block"><i class="bi bi-phone-vibrate text-primary me-1"></i>Notificación enviada al celular:</span>
+            <span id="cli-mfa-tel-display" class="text-muted fw-semibold"></span>
+          </div>
+
+          <!-- Código QR para Google Authenticator en el teléfono -->
+          <div class="text-center mb-3 p-2.5 border rounded-3 bg-white">
+            <img id="cli-mfa-qr-img" src="" alt="QR MFA Huésped" class="img-fluid rounded border mb-1" style="max-width: 130px;">
+            <small class="d-block text-muted" style="font-size: 0.7rem;">
+              Escanea con <strong>Google / Microsoft Authenticator</strong> en tu celular
+            </small>
+          </div>
+
+          <!-- Código de respaldo / demo en pantalla -->
+          <div class="alert alert-warning py-1.5 px-2 small text-center mb-3">
+            <span class="text-muted d-block" style="font-size: 0.7rem;">Código dinámico actual (vigente 30s):</span>
+            <strong id="cli-mfa-demo-code" class="fs-4 tracking-wider text-dark font-monospace">------</strong>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark d-block text-center">INGRESA EL CÓDIGO DE 6 DÍGITOS</label>
+            <input type="text" id="cli-mfa-otp" maxlength="6" placeholder="000000" class="form-control form-control-lg text-center fw-bold fs-4 font-monospace tracking-widest border-2 border-warning" style="letter-spacing: 0.35rem;">
+          </div>
+
+          <button id="btn-cli-verify-mfa" onclick="clientVerifyMfaSubmit()" class="btn btn-warning w-100 fw-bold shadow-sm text-dark py-2 mb-2">
+            <i class="bi bi-check-circle-fill me-1"></i> Verificar y Acceder
+          </button>
+
+          <button onclick="volverPasoCredencialesCliente()" class="btn btn-link btn-sm text-secondary w-100 text-decoration-none">
+            <i class="bi bi-arrow-left me-1"></i> Volver a ingresar contraseña
           </button>
         </div>
 
@@ -685,29 +727,93 @@
     .catch(() => showToast('Error al conectar con el servidor', 'error'));
   }
 
+  let clientPendingEmail = null;
+
   function clientLoginSubmit() {
     const email = document.getElementById('cli-login-email').value.trim();
     const pass = document.getElementById('cli-login-pass').value;
+    const btn = document.getElementById('btn-cli-login');
 
     if(!email || !pass) return showToast('Ingresa correo y contraseña', 'warning');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Verificando...';
 
     fetch('/api/cliente/login/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
-      body: JSON.stringify({ email: email, password: pass })
+      body: JSON.stringify({ paso: 'credenciales', email: email, password: pass })
     })
     .then(async res => {
+      btn.disabled = false;
+      btn.innerHTML = 'Continuar a Validación MFA <i class="bi bi-shield-lock-fill ms-1"></i>';
+
+      const data = await res.json();
+      if(res.ok && data.status === 'mfa_required') {
+        clientPendingEmail = data.email;
+        document.getElementById('cli-mfa-email-display').innerText = data.email;
+        document.getElementById('cli-mfa-tel-display').innerText = data.telefono_oculto ? `SMS enviado a ${data.telefono_oculto}` : 'Notificación de seguridad enviada al dispositivo registrado';
+        document.getElementById('cli-mfa-qr-img').src = `data:image/png;base64,${data.qr_b64}`;
+        document.getElementById('cli-mfa-demo-code').innerText = data.codigo_demo;
+        document.getElementById('cli-mfa-otp').value = '';
+
+        // Cambiar vistas
+        document.getElementById('form-login-cliente').classList.add('d-none');
+        document.getElementById('pills-tab').classList.add('d-none');
+        document.getElementById('form-mfa-cliente').classList.remove('d-none');
+        setTimeout(() => document.getElementById('cli-mfa-otp').focus(), 300);
+
+        showToast(data.message, 'info');
+      } else {
+        showToast(data.message || 'Credenciales incorrectas.', 'error');
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.innerHTML = 'Continuar a Validación MFA <i class="bi bi-shield-lock-fill ms-1"></i>';
+      showToast('Error al conectar con el servidor', 'error');
+    });
+  }
+
+  function clientVerifyMfaSubmit() {
+    const otp = document.getElementById('cli-mfa-otp').value.trim();
+    const btn = document.getElementById('btn-cli-verify-mfa');
+
+    if(!otp || otp.length < 6) return showToast('Ingresa el código de seguridad de 6 dígitos.', 'warning');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Verificando 2FA...';
+
+    fetch('/api/cliente/login/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+      body: JSON.stringify({ paso: 'mfa', codigo_otp: otp })
+    })
+    .then(async res => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Verificar y Acceder';
+
       const data = await res.json();
       if(res.ok && data.status === 'ok') {
         currentClient = { name: data.nombre, email: data.email };
         bsModalAuth.hide();
-        showToast(`¡Bienvenido/a, ${data.nombre}!`, 'success');
-        window.location.reload();
+        showToast(`¡Bienvenido/a, ${data.nombre}! Autenticación 2FA exitosa.`, 'success');
+        setTimeout(() => window.location.reload(), 900);
       } else {
-        showToast(data.message || 'Error al iniciar sesión', 'error');
+        showToast(data.message || 'Código incorrecto o expirado.', 'error');
       }
     })
-    .catch(() => showToast('Error al conectar con el servidor', 'error'));
+    .catch(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Verificar y Acceder';
+      showToast('Error al procesar la verificación MFA', 'error');
+    });
+  }
+
+  function volverPasoCredencialesCliente() {
+    document.getElementById('form-mfa-cliente').classList.add('d-none');
+    document.getElementById('pills-tab').classList.remove('d-none');
+    document.getElementById('form-login-cliente').classList.remove('d-none');
   }
 
   function clientLogout() {
