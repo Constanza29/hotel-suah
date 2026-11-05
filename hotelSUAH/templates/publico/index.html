@@ -448,23 +448,20 @@
             <span id="cli-mfa-tel-display" class="text-muted fw-semibold"></span>
           </div>
 
-          <!-- Código QR para Google Authenticator en el teléfono -->
-          <div class="text-center mb-3 p-2.5 border rounded-3 bg-white">
-            <img id="cli-mfa-qr-img" src="" alt="QR MFA Huésped" class="img-fluid rounded border mb-1" style="max-width: 130px;">
-            <small class="d-block text-muted" style="font-size: 0.7rem;">
-              Escanea con <strong>Google / Microsoft Authenticator</strong> en tu celular
+          <!-- Código QR para Google / Microsoft Authenticator en el teléfono -->
+          <div class="text-center mb-3 p-3 border rounded-3 bg-white shadow-sm">
+            <img id="cli-mfa-qr-img" src="" alt="QR MFA Huésped" class="img-fluid rounded border mb-2" style="max-width: 140px;">
+            <p class="mb-1 text-dark fw-bold" style="font-size: 0.82rem;">
+              <i class="bi bi-qr-code-scan text-primary me-1"></i> Escanea con tu app de autenticación
+            </p>
+            <small class="text-muted d-block" style="font-size: 0.72rem;">
+              Compatible con <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong> o <strong>Llavero iOS</strong>.
             </small>
           </div>
 
-          <!-- Código de respaldo / demo en pantalla -->
-          <div class="alert alert-warning py-1.5 px-2 small text-center mb-3">
-            <span class="text-muted d-block" style="font-size: 0.7rem;">Código dinámico actual (vigente 30s):</span>
-            <strong id="cli-mfa-demo-code" class="fs-4 tracking-wider text-dark font-monospace">------</strong>
-          </div>
-
           <div class="mb-3">
-            <label class="form-label small fw-bold text-dark d-block text-center">INGRESA EL CÓDIGO DE 6 DÍGITOS</label>
-            <input type="text" id="cli-mfa-otp" maxlength="6" placeholder="000000" class="form-control form-control-lg text-center fw-bold fs-4 font-monospace tracking-widest border-2 border-warning" style="letter-spacing: 0.35rem;">
+            <label class="form-label small fw-bold text-dark d-block text-center">INGRESA EL CÓDIGO DE 6 DÍGITOS DE TU APP</label>
+            <input type="text" id="cli-mfa-otp" maxlength="6" placeholder="000000" class="form-control form-control-lg text-center fw-bold fs-4 font-monospace tracking-widest border-2 border-warning" style="letter-spacing: 0.35rem;" autocomplete="off">
           </div>
 
           <button id="btn-cli-verify-mfa" onclick="clientVerifyMfaSubmit()" class="btn btn-warning w-100 fw-bold shadow-sm text-dark py-2 mb-2">

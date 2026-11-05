@@ -304,56 +304,18 @@ def login_admin_view(request):
         return redirect('panel_operativo')
 
     if request.method == 'POST':
-        paso = request.POST.get('paso', 'credenciales')
+        email = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '')
+        user = authenticate(request, username=email, password=password)
+        if user is not None:
+            # Validar que pertenezca a staff o admin
+            if not (user.is_superuser or user.groups.filter(name__in=['recepcion', 'housekeeping', 'mantenimiento']).exists()):
+                return render(request, 'admin/login.html', {'error': 'Acceso denegado: cuenta no pertenece al personal del hotel.'})
 
-        if paso == 'credenciales':
-            email = request.POST.get('email', '').strip()
-            password = request.POST.get('password', '')
-            user = authenticate(request, username=email, password=password)
-            if user is not None:
-                # Validar que pertenezca a staff o admin
-                if not (user.is_superuser or user.groups.filter(name__in=['recepcion', 'housekeeping', 'mantenimiento']).exists()):
-                    return render(request, 'admin/login.html', {'error': 'Acceso denegado: cuenta no pertenece al personal del hotel.'})
-
-                mfa_data = generar_datos_mfa(user)
-                request.session['admin_mfa_user_id'] = user.id
-                return render(request, 'admin/login.html', {
-                    'mfa_active': True,
-                    'user_email': user.email or user.username,
-                    'qr_b64': mfa_data['qr_b64'],
-                    'codigo_demo': mfa_data['current_otp'],
-                    'secret': mfa_data['secret']
-                })
-            else:
-                return render(request, 'admin/login.html', {'error': 'Credenciales incorrectas o usuario no autorizado.'})
-
-        elif paso == 'mfa':
-            user_id = request.session.get('admin_mfa_user_id')
-            codigo_otp = request.POST.get('codigo_otp', '').strip()
-
-            if not user_id:
-                return render(request, 'admin/login.html', {'error': 'La sesión MFA expiró. Ingrese nuevamente.'})
-
-            user = User.objects.filter(id=user_id).first()
-            if not user:
-                return render(request, 'admin/login.html', {'error': 'Usuario no válido.'})
-
-            if validar_codigo_mfa(user, codigo_otp):
-                login(request, user)
-                if 'admin_mfa_user_id' in request.session:
-                    del request.session['admin_mfa_user_id']
-                return redirect('panel_operativo')
-            else:
-                # Re-render MFA with error
-                mfa_data = generar_datos_mfa(user)
-                return render(request, 'admin/login.html', {
-                    'mfa_active': True,
-                    'user_email': user.email or user.username,
-                    'qr_b64': mfa_data['qr_b64'],
-                    'codigo_demo': mfa_data['current_otp'],
-                    'secret': mfa_data['secret'],
-                    'error': 'Código de seguridad incorrecto o expirado (30s). Ingrese el código vigente.'
-                })
+            login(request, user)
+            return redirect('panel_operativo')
+        else:
+            return render(request, 'admin/login.html', {'error': 'Credenciales incorrectas o usuario no autorizado.'})
 
     return render(request, 'admin/login.html')
 
