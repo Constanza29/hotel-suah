@@ -798,6 +798,21 @@
   let bsModalChecklist = null;
 
   document.addEventListener('DOMContentLoaded', () => {
+    // Restringir fechas del filtro de disponibilidad a hoy en adelante
+    const hoyPanelISO = new Date().toISOString().split('T')[0];
+    const fDesde = document.getElementById('filtro-fecha-desde');
+    const fHasta = document.getElementById('filtro-fecha-hasta');
+    if (fDesde) {
+      fDesde.min = hoyPanelISO;
+      fDesde.addEventListener('change', () => {
+        if (fHasta) {
+          fHasta.min = fDesde.value;
+          if (fHasta.value && fHasta.value <= fDesde.value) fHasta.value = '';
+        }
+      });
+    }
+    if (fHasta) fHasta.min = hoyPanelISO;
+
     bsModalRoom = new bootstrap.Modal(document.getElementById('modalRoomDetail'));
     bsModalCheckin = new bootstrap.Modal(document.getElementById('modalCheckinDirecto'));
     bsModalConsumo = new bootstrap.Modal(document.getElementById('modalConsumo'));
@@ -1680,6 +1695,11 @@
 
     if(!desde || !hasta) {
       return showToast('Por favor selecciona fecha de entrada y salida para filtrar.', 'warning');
+    }
+
+    const hoyStr = new Date().toISOString().split('T')[0];
+    if (desde < hoyStr) {
+      return showToast('La fecha de entrada no puede ser anterior al día de hoy.', 'error');
     }
 
     if(hasta <= desde) {

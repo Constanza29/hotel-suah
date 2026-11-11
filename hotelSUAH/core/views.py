@@ -45,35 +45,112 @@ def obtener_rol_usuario(user):
 # VISTAS PÚBLICAS Y RESERVAS WEB
 # ========================================================
 
+def sincronizar_reservas_y_habitaciones_automatico():
+    """
+    Regla de Negocio Automatizada:
+    1. Si una reserva ya superó su fecha de Check-out (checkout < hoy) y estaba Ocupada o CheckIn,
+       finaliza la estadía de la reserva a CheckOut y marca la habitación como 'Sucia'
+       enviando automáticamente orden de sanitización a Housekeeping.
+    2. Si una habitación 'Ocupada' no tiene ninguna reserva activa en el día de hoy,
+       se libera a 'Disponible' (o 'Sucia' si requiere aseo).
+    """
+    hoy = datetime.date.today()
+    
+    # Reservas vencidas
+    reservas_vencidas = Reserva.objects.filter(
+        fecha_checkout__lt=hoy,
+        estado__in=['Confirmada', 'CheckIn']
+    ).select_related('habitacion')
+
+    for r in reservas_vencidas:
+        r.estado = 'CheckOut'
+        r.save()
+        hab = r.habitacion
+        if hab.estado == 'Ocupada':
+            hab.estado = 'Sucia'
+            hab.save()
+            TareaLimpieza.objects.get_or_create(habitacion=hab, estado='Pendiente')
+
 def index(request):
+    sincronizar_reservas_y_habitaciones_automatico()
+    hoy = datetime.date.today()
+
     tipos = TipoHabitacion.objects.all()
     habitaciones = Habitación.objects.all()
     cliente_nombre = None
     reserva_activa = None
+    reserva_futura = None
     folio_huesped = None
 
     if request.user.is_authenticated:
         c = Cliente.objects.filter(email=request.user.email).first()
         cliente_nombre = c.nombre_completo if c else request.user.first_name or request.user.username
         
-        # Buscar la reserva activa más reciente del huésped
         if c:
-            reserva_activa = Reserva.objects.filter(cliente=c).exclude(estado='CheckOut').order_by('-id').first()
+            # 1. Estadía en Curso: Check-in ya realizado o fecha_checkin <= hoy <= fecha_checkout
+            reserva_activa = Reserva.objects.filter(
+                cliente=c,
+                estado__in=['CheckIn', 'Confirmada'],
+                fecha_checkin__lte=hoy,
+                fecha_checkout__gte=hoy
+            ).order_by('-id').first()
+
             if reserva_activa and hasattr(reserva_activa, 'folio'):
                 folio_huesped = reserva_activa.folio
+
+            # 2. Si no está en curso hoy, verificar si tiene una Reserva Futura Confirmada
+            if not reserva_activa:
+                reserva_futura = Reserva.objects.filter(
+                    cliente=c,
+                    estado='Confirmada',
+                    fecha_checkin__gt=hoy
+                ).order_by('fecha_checkin').first()
 
     return render(request, 'publico/index.html', {
         'tipos': tipos,
         'habitaciones': habitaciones,
         'cliente_nombre': cliente_nombre,
         'reserva_activa': reserva_activa,
+        'reserva_futura': reserva_futura,
         'folio_huesped': folio_huesped,
+        'hoy': hoy,
     })
 
 def buscar_disponibilidad_api(request):
-    disponibles = Habitación.objects.filter(estado='Disponible').select_related('tipo')
+    sincronizar_reservas_y_habitaciones_automatico()
+    hoy = datetime.date.today()
+
+    checkin_str = request.GET.get('checkin')
+    checkout_str = request.GET.get('checkout')
+
+    if not checkin_str or not checkout_str:
+        return JsonResponse({'status': 'error', 'message': 'Debes seleccionar fecha de llegada y salida.'}, status=400)
+
+    try:
+        f_in = datetime.datetime.strptime(checkin_str, '%Y-%m-%d').date()
+        f_out = datetime.datetime.strptime(checkout_str, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'status': 'error', 'message': 'Formato de fecha inválido (AAAA-MM-DD).'}, status=400)
+
+    # Validaciones temporales estrictas (CU-01 / RN-01)
+    if f_in < hoy:
+        return JsonResponse({'status': 'error', 'message': f'La fecha de llegada ({f_in.strftime("%d/%m/%Y")}) no puede ser anterior al día de hoy ({hoy.strftime("%d/%m/%Y")}).'}, status=400)
+
+    if f_out <= f_in:
+        return JsonResponse({'status': 'error', 'message': f'La fecha de salida ({f_out.strftime("%d/%m/%Y")}) debe ser posterior a la fecha de llegada ({f_in.strftime("%d/%m/%Y")}).'}, status=400)
+
+    # Habitaciones con reservas confirmadas o check-in que se solapan con este rango (RN-01)
+    reservas_solapadas = set(Reserva.objects.filter(
+        estado__in=['Confirmada', 'CheckIn'],
+        fecha_checkin__lt=f_out,
+        fecha_checkout__gt=f_in
+    ).values_list('habitacion__numero', flat=True))
+
+    # Habitaciones disponibles: No solapadas y aptas
+    habitaciones = Habitación.objects.exclude(numero__in=reservas_solapadas).exclude(estado__in=['Mantenimiento', 'Sucia', 'EnLimpieza']).select_related('tipo').order_by('numero')
+
     data = []
-    for h in disponibles:
+    for h in habitaciones:
         data.append({
             'numero': h.numero,
             'tipo': h.tipo.nombre,
@@ -82,11 +159,7 @@ def buscar_disponibilidad_api(request):
             'descripcion': h.tipo.descripcion or '',
             'imagen': h.tipo.imagen_url or ''
         })
-    return JsonResponse({'status': 'ok', 'habitaciones': data})
-
-# ========================================================
-# REGISTRO Y AUTH HUÉSPED (SEGURIDAD CHILE: LEY 21.719 & OWASP)
-# ========================================================
+    return JsonResponse({'status': 'ok', 'habitaciones': data, 'noches': (f_out - f_in).days})
 
 @require_POST
 def cliente_registro_api(request):
@@ -203,6 +276,9 @@ def cliente_logout_api(request):
 
 @require_POST
 def reservar_publico_api(request):
+    sincronizar_reservas_y_habitaciones_automatico()
+    hoy = datetime.date.today()
+
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -213,6 +289,21 @@ def reservar_publico_api(request):
     email = data.get('email')
     checkin_str = data.get('checkin')
     checkout_str = data.get('checkout')
+
+    if not checkin_str or not checkout_str:
+        return JsonResponse({'status': 'error', 'message': 'Debes especificar las fechas de llegada y salida para reservar.'}, status=400)
+
+    try:
+        f_in = datetime.datetime.strptime(checkin_str, '%Y-%m-%d').date()
+        f_out = datetime.datetime.strptime(checkout_str, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'status': 'error', 'message': 'Formato de fecha inválido.'}, status=400)
+
+    if f_in < hoy:
+        return JsonResponse({'status': 'error', 'message': f'La fecha de llegada ({f_in.strftime("%d/%m/%Y")}) no puede ser anterior a hoy ({hoy.strftime("%d/%m/%Y")}).'}, status=400)
+
+    if f_out <= f_in:
+        return JsonResponse({'status': 'error', 'message': 'La fecha de salida debe ser posterior a la de llegada.'}, status=400)
 
     if request.user.is_authenticated:
         c = Cliente.objects.filter(email=request.user.email).first()
@@ -227,8 +318,20 @@ def reservar_publico_api(request):
         return JsonResponse({'status': 'error', 'message': 'Debes iniciar sesión con tu cuenta de huésped para reservar.'}, status=400)
 
     hab = get_object_or_404(Habitación, numero=numero_hab)
-    if hab.estado != 'Disponible':
-        return JsonResponse({'status': 'error', 'message': 'La habitación ya no se encuentra disponible.'}, status=400)
+
+    # Validar que no haya cruce de reservas en ese rango
+    solapada = Reserva.objects.filter(
+        habitacion=hab,
+        estado__in=['Confirmada', 'CheckIn'],
+        fecha_checkin__lt=f_out,
+        fecha_checkout__gt=f_in
+    ).exists()
+
+    if solapada or hab.estado in ['Mantenimiento', 'Sucia', 'EnLimpieza']:
+        return JsonResponse({'status': 'error', 'message': f'La habitación #{numero_hab} no está disponible para las fechas seleccionadas.'}, status=400)
+
+    noches = max(1, (f_out - f_in).days)
+    monto_total = hab.tipo.precio_base * noches
 
     with transaction.atomic():
         cliente, _ = Cliente.objects.get_or_create(
@@ -236,24 +339,33 @@ def reservar_publico_api(request):
             defaults={'nombre_completo': nombre}
         )
         codigo = f"RES-{hab.numero}-{int(timezone.now().timestamp()) % 10000}"
+        
+        # Si la reserva comienza hoy mismo, pasa a CheckIn y ocupa la habitación; si es a futuro, queda Confirmada
+        es_hoy = (f_in == hoy)
+        estado_reserva = 'CheckIn' if es_hoy else 'Confirmada'
+
         reserva = Reserva.objects.create(
             codigo_reserva=codigo,
             cliente=cliente,
             habitacion=hab,
-            fecha_checkin=checkin_str or datetime.date.today(),
-            fecha_checkout=checkout_str or (datetime.date.today() + datetime.timedelta(days=1)),
-            estado='Confirmada'
+            fecha_checkin=f_in,
+            fecha_checkout=f_out,
+            num_huespedes=hab.tipo.capacidad_personas,
+            estado=estado_reserva
         )
         folio = Folio.objects.create(reserva=reserva)
-        Cargo.objects.create(folio=folio, descripcion=f"Alojamiento {hab.tipo.nombre}", monto=hab.tipo.precio_base)
-        hab.estado = 'Ocupada'
-        hab.save()
+        Cargo.objects.create(
+            folio=folio,
+            descripcion=f"Alojamiento {hab.tipo.nombre} ({noches} noche{'s' if noches > 1 else ''}: {f_in.strftime('%d/%m')} al {f_out.strftime('%d/%m')})",
+            monto=monto_total
+        )
+        
+        if es_hoy:
+            hab.estado = 'Ocupada'
+            hab.save()
 
-    return JsonResponse({'status': 'ok', 'message': f'¡Reserva {codigo} confirmada exitosamente a nombre de {nombre}!'})
-
-# ========================================================
-# AUTOSERVICIO DEL HUÉSPED (PEDIR SERVICIOS EXTRAS Y ABONAR WEBPAY)
-# ========================================================
+    msg_extra = "¡Tu estadía comienza hoy! Puedes acceder a los servicios de habitación." if es_hoy else f"Tu reserva futura quedó confirmada para el {f_in.strftime('%d/%m/%Y')}."
+    return JsonResponse({'status': 'ok', 'message': f'¡Reserva {codigo} creada con éxito! {msg_extra}'})
 
 @login_required
 @require_POST
@@ -446,6 +558,7 @@ def logout_admin_view(request):
 
 @login_required
 def panel_operativo(request):
+    sincronizar_reservas_y_habitaciones_automatico()
     rol = obtener_rol_usuario(request.user)
     habitaciones = Habitación.objects.all().select_related('tipo').order_by('numero')
 
@@ -941,6 +1054,10 @@ def consultar_disponibilidad_recepcion_api(request):
         f_hasta = datetime.datetime.strptime(hasta_str, '%Y-%m-%d').date()
     except ValueError:
         return JsonResponse({'status': 'error', 'message': 'Formato de fecha inválido (AAAA-MM-DD).'}, status=400)
+
+    hoy = datetime.date.today()
+    if f_desde < hoy:
+        return JsonResponse({'status': 'error', 'message': f'La fecha de entrada no puede ser anterior al día de hoy ({hoy.strftime("%d/%m/%Y")}).'}, status=400)
 
     if f_hasta <= f_desde:
         return JsonResponse({'status': 'error', 'message': 'La fecha de salida debe ser posterior a la de entrada.'}, status=400)

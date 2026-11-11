@@ -46,14 +46,14 @@
   </div>
 </nav>
 
-<!-- Banner de Huésped Activo (Autoservicio) -->
+<!-- Banner de Huésped Activo (Autoservicio o Próxima Reserva) -->
 {% if reserva_activa %}
 <div class="bg-dark text-white border-bottom border-warning py-3">
   <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
     <div>
-      <span class="badge bg-warning text-dark text-uppercase fw-bold mb-1">Estadía en Curso</span>
+      <span class="badge bg-success text-white text-uppercase fw-bold mb-1"><i class="bi bi-door-open-fill me-1"></i>Estadía en Curso (Huésped Alojado)</span>
       <h4 class="h5 fw-bold mb-0 text-white">Habitación {{ reserva_activa.habitacion.numero }} ({{ reserva_activa.habitacion.tipo.nombre }})</h4>
-      <small class="text-white-50">Reserva: <strong>{{ reserva_activa.codigo_reserva }}</strong> | Check-in: {{ reserva_activa.fecha_checkin }} | Check-out: {{ reserva_activa.fecha_checkout }}</small>
+      <small class="text-white-50">Reserva: <strong>{{ reserva_activa.codigo_reserva }}</strong> | Check-in: {{ reserva_activa.fecha_checkin|date:"d/m/Y" }} | Check-out: {{ reserva_activa.fecha_checkout|date:"d/m/Y" }}</small>
     </div>
     <div class="d-flex align-items-center gap-2">
       <div class="bg-secondary bg-opacity-25 px-3 py-2 rounded-3 text-end me-2">
@@ -68,6 +68,19 @@
         <i class="bi bi-credit-card-fill me-1"></i> Pagar con WebPay
       </button>
       {% endif %}
+    </div>
+  </div>
+</div>
+{% elif reserva_futura %}
+<div class="bg-dark text-white border-bottom border-primary py-3">
+  <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+    <div>
+      <span class="badge bg-primary text-white text-uppercase fw-bold mb-1"><i class="bi bi-calendar-event me-1"></i>Próxima Reserva Confirmada</span>
+      <h4 class="h5 fw-bold mb-0 text-white">Habitación {{ reserva_futura.habitacion.numero }} ({{ reserva_futura.habitacion.tipo.nombre }})</h4>
+      <small class="text-white-50">Reserva: <strong>{{ reserva_futura.codigo_reserva }}</strong> | Fecha de Llegada: <strong>{{ reserva_futura.fecha_checkin|date:"d/m/Y" }}</strong> | Salida: <strong>{{ reserva_futura.fecha_checkout|date:"d/m/Y" }}</strong></small>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-light text-dark px-3 py-2">Check-in disponible desde las 15:00 hrs del {{ reserva_futura.fecha_checkin|date:"d/m/Y" }}</span>
     </div>
   </div>
 </div>
@@ -706,6 +719,25 @@
   let bsModalWebpay = null;
 
   document.addEventListener('DOMContentLoaded', () => {
+    // Configurar fechas mínimas permitidas (hoy en adelante)
+    const hoyISO = new Date().toISOString().split('T')[0];
+    const inpCheckin = document.getElementById('web-checkin');
+    const inpCheckout = document.getElementById('web-checkout');
+    if (inpCheckin) {
+      inpCheckin.min = hoyISO;
+      inpCheckin.addEventListener('change', () => {
+        if (inpCheckout) {
+          inpCheckout.min = inpCheckin.value;
+          if (inpCheckout.value && inpCheckout.value <= inpCheckin.value) {
+            inpCheckout.value = '';
+          }
+        }
+      });
+    }
+    if (inpCheckout) {
+      inpCheckout.min = hoyISO;
+    }
+
     bsModalAuth = new bootstrap.Modal(document.getElementById('modalAuthCliente'));
     bsModalServicio = new bootstrap.Modal(document.getElementById('modalPedirServicio'));
     bsModalWebpay = new bootstrap.Modal(document.getElementById('modalAbonoWebpay'));
@@ -915,16 +947,28 @@
   function buscarDisponibilidadWeb() {
     const inDate = document.getElementById('web-checkin').value;
     const outDate = document.getElementById('web-checkout').value;
-    if(!inDate || !outDate) return showToast("Por favor, selecciona las fechas.", "warning");
+    if(!inDate || !outDate) return showToast("Por favor selecciona tanto la fecha de llegada como de salida.", "warning");
+
+    const hoyStr = new Date().toISOString().split('T')[0];
+    if (inDate < hoyStr) {
+      return showToast("La fecha de llegada no puede ser anterior al día de hoy.", "error");
+    }
+    if (outDate <= inDate) {
+      return showToast("La fecha de salida debe ser posterior a la fecha de llegada.", "error");
+    }
 
     fetch(`/api/buscar-disponibilidad/?checkin=${inDate}&checkout=${outDate}`)
-      .then(res => res.json())
-      .then(data => {
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok || data.status !== 'ok') {
+          return showToast(data.message || 'Error al buscar disponibilidad.', 'error');
+        }
+
         document.getElementById('booking-step-2').classList.remove('d-none');
         const resultsDiv = document.getElementById('web-rooms-results');
         resultsDiv.innerHTML = '';
         if(data.habitaciones.length === 0) {
-          resultsDiv.innerHTML = '<div class="col-12 text-center text-danger fw-bold py-3">No hay habitaciones disponibles para esas fechas.</div>';
+          resultsDiv.innerHTML = '<div class="col-12 text-center text-danger fw-bold py-3"><i class="bi bi-calendar-x fs-3 d-block mb-2"></i>No hay habitaciones disponibles para el rango de fechas seleccionado.</div>';
           return;
         }
         data.habitaciones.forEach(r => {
@@ -938,15 +982,16 @@
                 <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
                   <span class="h5 fw-bold text-suah-gold mb-0">$${Number(r.precio).toLocaleString()} <small class="text-muted fs-6 font-normal">/ noche</small></span>
                   <button onclick="confirmarReservaWeb('${r.numero}', ${r.precio})" class="btn btn-warning btn-sm fw-bold shadow-sm text-dark">
-                    Reservar
+                    Reservar (${data.noches} ${data.noches > 1 ? 'noches' : 'noche'})
                   </button>
                 </div>
               </div>
             </div>
           `;
         });
-        showToast(`Se encontraron ${data.habitaciones.length} habitaciones disponibles.`, 'success');
-      });
+        showToast(`Se encontraron ${data.habitaciones.length} habitaciones disponibles para tu estadía.`, 'success');
+      })
+      .catch(() => showToast('Error de comunicación al buscar disponibilidad.', 'error'));
   }
 
   function confirmarReservaWeb(habId, precio) {
