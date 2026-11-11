@@ -491,7 +491,7 @@
         <div id="form-register-cliente" class="d-none">
           <div class="text-center mb-3">
             <h5 class="fw-bold text-dark mb-1">Crear Cuenta Segura</h5>
-            <small class="text-muted">Conforme a Ley 21.719 e ISO 27001</small>
+            <small class="text-muted">Ingresa tus datos para gestionar tus reservas</small>
           </div>
 
           <div class="mb-2">
@@ -791,7 +791,7 @@
 
     if(puntos <= 2) {
       fill.style.width = '33%'; fill.className = 'progress-bar bg-danger';
-      txt.innerText = 'Seguridad: Débil (No cumple normativa)';
+      txt.innerText = 'Seguridad: Débil';
       txt.className = 'text-danger small fw-bold';
     } else if(puntos <= 4) {
       fill.style.width = '66%'; fill.className = 'progress-bar bg-warning';
@@ -799,7 +799,7 @@
       txt.className = 'text-warning small fw-bold';
     } else {
       fill.style.width = '100%'; fill.className = 'progress-bar bg-success';
-      txt.innerText = 'Seguridad: Robusta (Cumple Ley 21.719 e ISO 27001)';
+      txt.innerText = 'Seguridad: Robusta / Excelente';
       txt.className = 'text-success small fw-bold';
     }
   }
