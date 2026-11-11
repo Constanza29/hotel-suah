@@ -888,7 +888,7 @@
       if(res.ok && data.status === 'ok') {
         showToast(data.message, 'success');
         bsModalCheckin.hide();
-        setTimeout(() => window.location.reload(), 1000);
+        setTimeout(() => window.location.reload(), 2500);
       } else {
         showToast(data.message || 'Error en el check-in', 'error');
       }
@@ -1220,7 +1220,7 @@
       if(data.status === 'ok') {
         showToast('Check-out finalizado con éxito. Habitación enviada a Housekeeping (SUCIA).', 'success');
         bsModalRoom.hide();
-        setTimeout(() => window.location.reload(), 1200);
+        setTimeout(() => window.location.reload(), 2500);
       } else {
         showToast(data.message, 'error');
       }
@@ -1240,7 +1240,7 @@
     .then(data => {
       showToast(data.message, 'warning');
       bsModalRoom.hide();
-      window.location.reload();
+      setTimeout(() => window.location.reload(), 2500);
     });
   }
 
@@ -1270,7 +1270,7 @@
     .then(res => res.json())
     .then(data => {
       showToast(data.message, 'success');
-      window.location.reload();
+      setTimeout(() => window.location.reload(), 2500);
     });
   }
 
@@ -1325,7 +1325,7 @@
       if(data.status === 'ok') {
         showToast(data.message, 'success');
         if (bsModalChecklist) bsModalChecklist.hide();
-        setTimeout(() => window.location.reload(), 1000);
+        setTimeout(() => window.location.reload(), 2500);
       } else {
         showToast(data.message || 'Error al completar limpieza', 'error');
       }
@@ -1353,7 +1353,7 @@
       if(data.status === 'ok') {
         showToast(data.message, 'warning');
         if (bsModalChecklist) bsModalChecklist.hide();
-        setTimeout(() => window.location.reload(), 1200);
+        setTimeout(() => window.location.reload(), 2500);
       } else {
         showToast(data.message || 'Error al reportar desperfecto', 'error');
       }
