@@ -364,20 +364,39 @@
           </div>
         </div>
 
-        <div class="mb-2">
+        <div class="mb-2" id="contenedor-sel-metodo">
           <label class="form-label small fw-bold">Método de Pago</label>
-          <select id="sel-abono-metodo" class="form-select">
-            <option value="Tarjeta de Débito/Crédito (Transbank)">Tarjeta de Débito/Crédito (Transbank)</option>
-            <option value="Efectivo en Caja">Efectivo en Caja</option>
-            <option value="Transferencia Bancaria">Transferencia Bancaria</option>
-            <option value="WebPay Online">WebPay Online</option>
+          <select id="sel-abono-metodo" class="form-select" onchange="actualizarAyudaMetodoPago()">
+            <option value="Tarjeta de Débito/Crédito (Transbank)">💳 Tarjeta Débito / Crédito (Terminal POS Transbank)</option>
+            <option value="Efectivo en Caja">💵 Efectivo en Caja</option>
+            <option value="Transferencia Bancaria">🏦 Transferencia Bancaria</option>
+            <option value="WebPay Online">🌐 WebPay Plus Online</option>
           </select>
         </div>
 
+        <div id="alerta-pos-info" class="alert alert-info py-2 px-3 small d-flex align-items-center mb-0 mt-3">
+          <i class="bi bi-credit-card-2-front-fill fs-4 me-2 text-primary"></i>
+          <div>
+            <strong>Terminal POS Físico:</strong> El huésped opera en la maquinita Transbank (contacto o chip). No se piden datos de tarjeta en pantalla.
+          </div>
+        </div>
+
+        <!-- Vista de Procesamiento en Maquinita POS (animación con spinner) -->
+        <div id="pos-terminal-animacion" class="d-none text-center py-4 my-2 border rounded-4 bg-light shadow-sm">
+          <div class="spinner-border text-primary mb-3" style="width: 3.5rem; height: 3.5rem;" role="status">
+            <span class="visually-hidden">Cargando...</span>
+          </div>
+          <h5 class="fw-bold text-dark mb-1" id="pos-status-text">Esperando tarjeta en terminal POS...</h5>
+          <p class="text-muted small mb-2" id="pos-substatus-text">Acerque, inserte tarjeta o ingrese PIN en la maquinita</p>
+          <div class="d-inline-flex align-items-center gap-2 px-3 py-1 bg-white rounded-pill border small text-muted shadow-xs">
+            <i class="bi bi-wifi text-primary"></i> Conexión activa Transbank POS
+          </div>
+        </div>
+
       </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" onclick="enviarAbonoAjax()" class="btn btn-success fw-bold shadow-sm">
+      <div class="modal-footer border-0" id="modal-abono-footer">
+        <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal" id="btn-cancelar-abono">Cancelar</button>
+        <button type="button" onclick="enviarAbonoAjax()" class="btn btn-success fw-bold shadow-sm" id="btn-confirmar-abono">
           <i class="bi bi-cash-stack me-1"></i> Confirmar Pago
         </button>
       </div>
@@ -929,6 +948,37 @@
   // --- MODAL ABONO / PAGO ---
   let abonoHabNum = null;
 
+  function actualizarAyudaMetodoPago() {
+    const sel = document.getElementById('sel-abono-metodo');
+    const alertaPos = document.getElementById('alerta-pos-info');
+    if (!sel || !alertaPos) return;
+
+    if (sel.value.includes('Tarjeta')) {
+      alertaPos.classList.remove('d-none');
+      alertaPos.className = 'alert alert-info py-2 px-3 small d-flex align-items-center mb-0 mt-3';
+      alertaPos.innerHTML = `
+        <i class="bi bi-credit-card-2-front-fill fs-4 me-2 text-primary"></i>
+        <div><strong>Terminal POS Físico:</strong> El huésped opera en la maquinita Transbank (contacto o chip). No se piden datos de tarjeta en pantalla.</div>
+      `;
+    } else if (sel.value.includes('Efectivo')) {
+      alertaPos.classList.remove('d-none');
+      alertaPos.className = 'alert alert-secondary py-2 px-3 small d-flex align-items-center mb-0 mt-3';
+      alertaPos.innerHTML = `
+        <i class="bi bi-cash-coin fs-4 me-2 text-success"></i>
+        <div><strong>Efectivo en Caja:</strong> Cobro manual directo en recepción. Se emite comprobante al registrar.</div>
+      `;
+    } else if (sel.value.includes('Transferencia')) {
+      alertaPos.classList.remove('d-none');
+      alertaPos.className = 'alert alert-secondary py-2 px-3 small d-flex align-items-center mb-0 mt-3';
+      alertaPos.innerHTML = `
+        <i class="bi bi-bank fs-4 me-2 text-primary"></i>
+        <div><strong>Transferencia:</strong> Verifique comprobante bancario recibido en cuenta del hotel antes de confirmar.</div>
+      `;
+    } else {
+      alertaPos.classList.add('d-none');
+    }
+  }
+
   function abrirModalAbono(num, balance, modo = 'total') {
     if(balance <= 0) return showToast('No hay saldo pendiente en esta habitación.', 'info');
 
@@ -939,6 +989,16 @@
     const titulo = document.getElementById('lbl-abono-titulo');
     const subtitulo = document.getElementById('lbl-abono-subtitulo');
     const inputMonto = document.getElementById('txt-abono-monto');
+    const animPos = document.getElementById('pos-terminal-animacion');
+    const footerModal = document.getElementById('modal-abono-footer');
+    const inputGroupMonto = inputMonto ? inputMonto.closest('.mb-3') : null;
+    const comboMetodo = document.getElementById('contenedor-sel-metodo');
+
+    // Restaurar vistas en caso de abono anterior
+    if (animPos) animPos.classList.add('d-none');
+    if (inputGroupMonto) inputGroupMonto.classList.remove('d-none');
+    if (comboMetodo) comboMetodo.classList.remove('d-none');
+    if (footerModal) footerModal.classList.remove('d-none');
 
     if(modo === 'total') {
       titulo.innerText = 'Pagar Saldo Total de la Cuenta';
@@ -951,27 +1011,15 @@
       inputMonto.placeholder = 'Ingrese monto a abonar';
     }
 
+    actualizarAyudaMetodoPago();
+
     // Ocultar modal de detalle para evitar bloqueo de capas de Bootstrap
     if (bsModalRoom) bsModalRoom.hide();
     bsModalAbono.show();
     setTimeout(() => inputMonto.focus(), 400);
   }
 
-  function enviarAbonoAjax() {
-    const num = abonoHabNum || document.getElementById('lbl-abono-hab').innerText.trim();
-    const inputMonto = document.getElementById('txt-abono-monto');
-    const monto = inputMonto.value.trim();
-    const metodo = document.getElementById('sel-abono-metodo').value;
-
-    if(!num) return showToast('No se detectó el número de habitación.', 'error');
-    if(!monto || parseInt(monto) <= 0) return showToast('Por favor ingrese un monto válido a abonar.', 'warning');
-
-    const btnConfirm = event ? event.target.closest('button') : null;
-    if (btnConfirm) {
-      btnConfirm.disabled = true;
-      btnConfirm.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Procesando...';
-    }
-
+  function ejecutarLlamadaAbono(num, monto, metodo, btnConfirm) {
     fetch(`/api/abono/${num}/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
@@ -989,6 +1037,17 @@
         bsModalAbono.hide();
         setTimeout(() => openRoomModal(num), 400);
       } else {
+        // Restaurar vista de formulario si hubo error
+        const animPos = document.getElementById('pos-terminal-animacion');
+        const inputMonto = document.getElementById('txt-abono-monto');
+        const inputGroupMonto = inputMonto ? inputMonto.closest('.mb-3') : null;
+        const comboMetodo = document.getElementById('contenedor-sel-metodo');
+        const footerModal = document.getElementById('modal-abono-footer');
+        if (animPos) animPos.classList.add('d-none');
+        if (inputGroupMonto) inputGroupMonto.classList.remove('d-none');
+        if (comboMetodo) comboMetodo.classList.remove('d-none');
+        if (footerModal) footerModal.classList.remove('d-none');
+        actualizarAyudaMetodoPago();
         showToast(data.message || 'Error al procesar el abono.', 'error');
       }
     })
@@ -997,8 +1056,77 @@
         btnConfirm.disabled = false;
         btnConfirm.innerHTML = '<i class="bi bi-cash-stack me-1"></i> Confirmar Pago';
       }
+      const animPos = document.getElementById('pos-terminal-animacion');
+      const inputMonto = document.getElementById('txt-abono-monto');
+      const inputGroupMonto = inputMonto ? inputMonto.closest('.mb-3') : null;
+      const comboMetodo = document.getElementById('contenedor-sel-metodo');
+      const footerModal = document.getElementById('modal-abono-footer');
+      if (animPos) animPos.classList.add('d-none');
+      if (inputGroupMonto) inputGroupMonto.classList.remove('d-none');
+      if (comboMetodo) comboMetodo.classList.remove('d-none');
+      if (footerModal) footerModal.classList.remove('d-none');
+      actualizarAyudaMetodoPago();
       showToast('Error de conexión al procesar el pago', 'error');
     });
+  }
+
+  function enviarAbonoAjax() {
+    const num = abonoHabNum || document.getElementById('lbl-abono-hab').innerText.trim();
+    const inputMonto = document.getElementById('txt-abono-monto');
+    const monto = inputMonto.value.trim();
+    const metodo = document.getElementById('sel-abono-metodo').value;
+
+    if(!num) return showToast('No se detectó el número de habitación.', 'error');
+    if(!monto || parseInt(monto) <= 0) return showToast('Por favor ingrese un monto válido a abonar.', 'warning');
+
+    const btnConfirm = document.getElementById('btn-confirmar-abono');
+
+    // Si es pago presencial con tarjeta (POS Transbank maquinita):
+    if (metodo.includes('Tarjeta')) {
+      const animPos = document.getElementById('pos-terminal-animacion');
+      const statusText = document.getElementById('pos-status-text');
+      const substatusText = document.getElementById('pos-substatus-text');
+      const alertaPos = document.getElementById('alerta-pos-info');
+      const inputGroupMonto = inputMonto.closest('.mb-3');
+      const comboMetodo = document.getElementById('contenedor-sel-metodo');
+      const footerModal = document.getElementById('modal-abono-footer');
+
+      // Ocultar formulario de ingreso y mostrar solo el círculo de carga / maquinita
+      if (inputGroupMonto) inputGroupMonto.classList.add('d-none');
+      if (comboMetodo) comboMetodo.classList.add('d-none');
+      if (alertaPos) alertaPos.classList.add('d-none');
+      if (footerModal) footerModal.classList.add('d-none');
+
+      if (animPos) {
+        animPos.classList.remove('d-none');
+        statusText.innerText = 'Esperando tarjeta en terminal POS...';
+        substatusText.innerText = `Monto a cobrar: $${parseInt(monto).toLocaleString()} CLP. Acerque o inserte la tarjeta en la maquinita.`;
+      }
+
+      // Simular tiempo de lectura y autorización en el terminal POS físico (2.5 segundos)
+      setTimeout(() => {
+        if (statusText) statusText.innerText = 'Autorizando transacción con el banco...';
+        if (substatusText) substatusText.innerText = 'Espere un momento, procesando PIN / Chip...';
+
+        setTimeout(() => {
+          if (statusText) statusText.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i> ¡Aprobado en Maquinita!</span>';
+          if (substatusText) substatusText.innerText = 'Registrando comprobante en el sistema hotelero...';
+
+          setTimeout(() => {
+            ejecutarLlamadaAbono(num, monto, metodo, btnConfirm);
+          }, 800);
+        }, 1500);
+      }, 1200);
+
+      return;
+    }
+
+    // Para Efectivo, Transferencia u otros métodos directos:
+    if (btnConfirm) {
+      btnConfirm.disabled = true;
+      btnConfirm.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Procesando...';
+    }
+    ejecutarLlamadaAbono(num, monto, metodo, btnConfirm);
   }
 
   // --- COMPROBANTE BOLETA RF-05 ---
