@@ -142,7 +142,65 @@
         </div>
 
         <!-- Grid de Tarjetas Bootstrap -->
-        <div class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3" id="room-matrix"></div>
+        <div class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3 mb-4" id="room-matrix"></div>
+
+        <!-- Solicitudes Activas de Huéspedes en Estadía (Recepción / Admin) -->
+        <div class="row g-3 border-top pt-3">
+          <!-- Tarjeta Solicitudes Housekeeping -->
+          <div class="col-12 col-md-6">
+            <div class="card border-warning bg-warning bg-opacity-10 rounded-3 p-3 h-100 shadow-xs">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-bold small text-dark"><i class="bi bi-bell-fill text-warning me-1"></i>Solicitudes de Insumos / Aseo (Huéspedes):</span>
+                <span class="badge bg-warning text-dark">{{ solicitudes_aseo_ocupadas|length }}</span>
+              </div>
+              {% if solicitudes_aseo_ocupadas %}
+              <div class="d-flex flex-column gap-2" style="max-height: 180px; overflow-y: auto;">
+                {% for s in solicitudes_aseo_ocupadas %}
+                <div class="bg-white p-2 rounded border small d-flex justify-content-between align-items-center">
+                  <div>
+                    <span class="badge bg-primary me-1">Hab #{{ s.habitacion.numero }}</span>
+                    <span class="fw-semibold text-dark">{{ s.observaciones }}</span>
+                  </div>
+                  <span class="text-muted" style="font-size: 0.7rem;">{{ s.fecha_creacion|date:"H:i" }}</span>
+                </div>
+                {% endfor %}
+              </div>
+              {% else %}
+              <p class="text-muted small mb-0 fst-italic">No hay pedidos de insumos pendientes.</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Tarjeta Reportes Técnicos Huéspedes -->
+          <div class="col-12 col-md-6">
+            <div class="card border-danger bg-danger bg-opacity-10 rounded-3 p-3 h-100 shadow-xs">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-bold small text-dark"><i class="bi bi-tools text-danger me-1"></i>Reportes de Fallas en Hab. Ocupadas:</span>
+                <span class="badge bg-danger">
+                  {% with ocupadas_mant=tickets_mantenimiento|length %}
+                  {{ ocupadas_mant }}
+                  {% endwith %}
+                </span>
+              </div>
+              {% if tickets_mantenimiento %}
+              <div class="d-flex flex-column gap-2" style="max-height: 180px; overflow-y: auto;">
+                {% for t in tickets_mantenimiento %}
+                <div class="bg-white p-2 rounded border small d-flex justify-content-between align-items-center">
+                  <div>
+                    <span class="badge {% if t.habitacion.estado == 'Ocupada' %}bg-primary{% else %}bg-danger{% endif %} me-1">Hab #{{ t.habitacion.numero }}</span>
+                    <span class="fw-semibold text-dark">{{ t.descripcion_falla }}</span>
+                  </div>
+                  <span class="text-muted" style="font-size: 0.7rem;">{{ t.fecha_reporte|date:"H:i" }}</span>
+                </div>
+                {% endfor %}
+              </div>
+              {% else %}
+              <p class="text-muted small mb-0 fst-italic">No hay fallas técnicas pendientes.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -216,42 +274,92 @@
   {% if rol == 'mantenimiento' or rol == 'admin' or rol == 'administrador' %}
   <div id="view-mantenimiento" class="{% if rol != 'mantenimiento' %}d-none{% endif %} card border-0 shadow-sm rounded-4 p-4 bg-white">
     <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
-      <h2 class="h5 fw-bold text-dark mb-0">
-        <i class="bi bi-cone-striped text-danger me-2"></i>Tickets de Falla y Bloqueo Técnico (RF-04)
-      </h2>
-      <span class="badge bg-danger px-3 py-2 fw-bold" id="mt-counter">0 Activos</span>
+      <div>
+        <h2 class="h5 fw-bold text-dark mb-0">
+          <i class="bi bi-tools text-danger me-2"></i>Gestión de Mantenimiento & Soporte Técnico (RF-04)
+        </h2>
+        <small class="text-muted">Tickets de averías, reportes de huéspedes y habitaciones bloqueadas</small>
+      </div>
+      <span class="badge bg-danger px-3 py-2 fw-bold" id="mt-counter">{{ tickets_mantenimiento|length }} Tickets Activos</span>
     </div>
 
-    <div class="row g-3" id="mt-ticket-list">
-      {% if tickets_mantenimiento %}
+    <!-- SECCIÓN 1: REQUERIMIENTOS URGENTES EN HABITACIONES OCUPADAS (Sin bloqueo de habitación) -->
+    <div class="mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="fw-bold text-primary mb-0">
+          <i class="bi bi-person-fill-exclamation me-1"></i>Atención Inmediata: Huésped Alojado (Habitación Activa):
+        </h6>
+        <span class="badge bg-primary-subtle text-primary border border-primary px-2">Visita técnica sin desalojo</span>
+      </div>
+
+      <div class="row g-3">
         {% for t in tickets_mantenimiento %}
-        <div class="col-12 col-md-6">
-          <div class="card border-danger bg-danger bg-opacity-10 p-3 rounded-3 shadow-sm h-100 d-flex flex-row justify-content-between align-items-center">
-            <div>
-              <div class="d-flex align-items-center gap-2 mb-1">
-                <span class="fw-bold h6 mb-0 text-dark">Habitación {{ t.habitacion.numero }}</span>
-                {% if t.habitacion.estado == 'Ocupada' %}
-                <span class="badge bg-primary text-uppercase">Huésped Alojado</span>
-                {% else %}
-                <span class="badge bg-danger text-uppercase">Bloqueada</span>
-                {% endif %}
+          {% if t.habitacion.estado == 'Ocupada' %}
+          <div class="col-12 col-md-6">
+            <div class="card border-primary bg-primary bg-opacity-10 p-3 rounded-3 shadow-sm h-100 d-flex flex-row justify-content-between align-items-center">
+              <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="fw-bold h6 mb-0 text-dark">Habitación {{ t.habitacion.numero }}</span>
+                  <span class="badge bg-primary text-uppercase">Huésped Alojado</span>
+                  <span class="badge bg-warning text-dark text-uppercase">Urgente</span>
+                </div>
+                <small class="text-muted d-block">Piso {{ t.habitacion.piso }} - {{ t.habitacion.tipo.nombre }} | Reportado {{ t.fecha_reporte|date:"H:i" }} hrs</small>
+                <span class="small fw-semibold text-danger mt-1 d-block"><i class="bi bi-exclamation-circle-fill me-1"></i>{{ t.descripcion_falla }}</span>
               </div>
-              <small class="text-muted d-block">Piso {{ t.habitacion.piso }} - {{ t.habitacion.tipo.nombre }} | {{ t.fecha_reporte|date:"H:i" }} hrs</small>
-              <span class="small fw-semibold text-danger mt-1 d-block"><i class="bi bi-exclamation-triangle-fill me-1"></i>{{ t.descripcion_falla }}</span>
+              <button onclick="cerrarTicket('{{ t.habitacion.numero }}')" class="btn btn-primary btn-sm fw-bold ms-2 text-nowrap shadow-sm">
+                <i class="bi bi-check2-circle me-1"></i>Solucionado
+              </button>
             </div>
-            <button onclick="cerrarTicket('{{ t.habitacion.numero }}')" class="btn btn-dark btn-sm fw-bold ms-2 text-nowrap">
-              <i class="bi bi-check-circle me-1"></i>Reparada
-            </button>
           </div>
-        </div>
+          {% endif %}
+        {% empty %}
+          <div class="col-12">
+            <div class="alert alert-light border py-2 px-3 small text-muted mb-0">
+              <i class="bi bi-check-circle text-success me-1"></i> No hay requerimientos técnicos de huéspedes en habitaciones ocupadas.
+            </div>
+          </div>
         {% endfor %}
-      {% else %}
-        <div class="col-12 text-center text-muted p-5 border rounded-3 bg-light">
-          <i class="bi bi-check2-all fs-2 text-success d-block mb-2"></i>
-          No hay tickets de fallas activas ni habitaciones con problemas técnicos.
-        </div>
-      {% endif %}
+      </div>
     </div>
+
+    <!-- SECCIÓN 2: HABITACIONES BLOQUEADAS POR FALLA TÉCNICA (Preventivas) -->
+    <div class="border-top pt-4">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="fw-bold text-danger mb-0">
+          <i class="bi bi-cone-striped me-1"></i>Habitaciones Bloqueadas por Mantenimiento Mayor:
+        </h6>
+        <span class="badge bg-danger-subtle text-danger border border-danger px-2">Fuera de servicio</span>
+      </div>
+
+      <div class="row g-3">
+        {% for t in tickets_mantenimiento %}
+          {% if t.habitacion.estado != 'Ocupada' %}
+          <div class="col-12 col-md-6">
+            <div class="card border-danger bg-danger bg-opacity-10 p-3 rounded-3 shadow-sm h-100 d-flex flex-row justify-content-between align-items-center">
+              <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="fw-bold h6 mb-0 text-dark">Habitación {{ t.habitacion.numero }}</span>
+                  <span class="badge bg-danger text-uppercase">Bloqueada</span>
+                </div>
+                <small class="text-muted d-block">Piso {{ t.habitacion.piso }} - {{ t.habitacion.tipo.nombre }} | Reportado {{ t.fecha_reporte|date:"H:i" }} hrs</small>
+                <span class="small fw-semibold text-danger mt-1 d-block"><i class="bi bi-wrench me-1"></i>{{ t.descripcion_falla }}</span>
+              </div>
+              <button onclick="cerrarTicket('{{ t.habitacion.numero }}')" class="btn btn-dark btn-sm fw-bold ms-2 text-nowrap">
+                <i class="bi bi-check-circle me-1"></i>Reparada
+              </button>
+            </div>
+          </div>
+          {% endif %}
+        {% empty %}
+          <div class="col-12">
+            <div class="alert alert-light border py-2 px-3 small text-muted mb-0">
+              <i class="bi bi-check-circle text-success me-1"></i> No hay habitaciones bloqueadas por averías técnicas.
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
   </div>
   {% endif %}
 
@@ -712,37 +820,9 @@
     }
 
     // 3. Mantenimiento List
-    const mtList = document.getElementById('mt-ticket-list');
-    if (mtList) {
-      mtList.innerHTML = '';
-      const brokenRooms = allRooms.filter(r => r.status === 'Mantenimiento');
-      const counter = document.getElementById('mt-counter');
-      if (counter) counter.innerText = `${brokenRooms.length} Activos`;
-
-      if(brokenRooms.length === 0) {
-        mtList.innerHTML = `<div class="col-12 text-center text-muted p-5 border rounded-3 bg-light">No hay tickets de fallas abiertas ni habitaciones bloqueadas.</div>`;
-      } else {
-        brokenRooms.forEach(r => {
-          mtList.innerHTML += `
-            <div class="col-12 col-md-6">
-              <div class="card border-danger bg-danger-subtle p-3 rounded-3 shadow-sm h-100 d-flex flex-row justify-content-between align-items-center">
-                <div>
-                  <div class="d-flex align-items-center gap-2 mb-1">
-                    <span class="fw-bold h6 mb-0 text-dark">Habitación ${r.id}</span>
-                    <span class="badge bg-danger text-uppercase">Bloqueada</span>
-                  </div>
-                  <small class="text-muted d-block">Piso ${r.id[0]} - ${r.type}</small>
-                  <span class="small fw-semibold text-danger mt-1 d-block">Falla: ${r.ticket || 'Revisión técnica'}</span>
-                </div>
-                <button onclick="cerrarTicket('${r.id}')" class="btn btn-dark btn-sm fw-bold ms-2">
-                  Reparada
-                </button>
-              </div>
-            </div>
-          `;
-        });
-      }
-    }
+    // Nota: Las tarjetas se renderizan organizadas en tiempo real desde el servidor divididas en:
+    // a) Soporte Urgente en Habitación Ocupada
+    // b) Habitaciones Bloqueadas por Avería Mayor
   }
 
   let currentFolioData = null;
