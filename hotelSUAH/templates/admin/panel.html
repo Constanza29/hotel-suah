@@ -1103,20 +1103,29 @@
         substatusText.innerText = `Monto a cobrar: $${parseInt(monto).toLocaleString()} CLP. Acerque o inserte la tarjeta en la maquinita.`;
       }
 
-      // Simular tiempo de lectura y autorización en el terminal POS físico (2.5 segundos)
+      // Simulación realista del terminal POS físico (~7 segundos en total) para dar tiempo a ver y fotografiar
+      // 1. Esperando tarjeta (2.2s)
       setTimeout(() => {
-        if (statusText) statusText.innerText = 'Autorizando transacción con el banco...';
-        if (substatusText) substatusText.innerText = 'Espere un momento, procesando PIN / Chip...';
+        if (statusText) statusText.innerText = 'Tarjeta detectada: Ingrese PIN en la maquinita...';
+        if (substatusText) substatusText.innerText = 'El cliente está digitando su clave secreta en el teclado del terminal...';
 
+        // 2. Procesando con el banco (2.4s)
         setTimeout(() => {
-          if (statusText) statusText.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i> ¡Aprobado en Maquinita!</span>';
-          if (substatusText) substatusText.innerText = 'Registrando comprobante en el sistema hotelero...';
+          if (statusText) statusText.innerText = 'Autorizando transacción con el banco emisor...';
+          if (substatusText) substatusText.innerText = 'Espere un momento, verificando chip y disponibilidad de fondos...';
 
+          // 3. Aprobación en maquinita (2.2s)
           setTimeout(() => {
-            ejecutarLlamadaAbono(num, monto, metodo, btnConfirm);
-          }, 800);
-        }, 1500);
-      }, 1200);
+            if (statusText) statusText.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i> ¡Transacción Aprobada en Maquinita!</span>';
+            if (substatusText) substatusText.innerText = 'Imprimiendo comprobante POS y registrando abono en el sistema...';
+
+            // 4. Guardar abono en base de datos
+            setTimeout(() => {
+              ejecutarLlamadaAbono(num, monto, metodo, btnConfirm);
+            }, 1800);
+          }, 2200);
+        }, 2400);
+      }, 2200);
 
       return;
     }
