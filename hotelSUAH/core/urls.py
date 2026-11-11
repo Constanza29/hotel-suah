@@ -34,5 +34,6 @@ urlpatterns = [
     path('api/housekeeping/atender-solicitud/<int:tarea_id>/', views.atender_solicitud_aseo_ocupada, name='atender_solicitud_aseo_ocupada'),
     path('api/resolver-mantenimiento/<str:numero>/', views.resolver_mantenimiento, name='resolver_mantenimiento'),
     path('api/contacto/enviar/', views.enviar_mensaje_contacto_api, name='enviar_mensaje_contacto'),
+    path('api/contacto/responder/<int:mensaje_id>/', views.responder_mensaje_contacto_api, name='responder_mensaje_contacto'),
     path('api/recepcion/consultar-disponibilidad/', views.consultar_disponibilidad_recepcion_api, name='consultar_disponibilidad_recepcion'),
 ]

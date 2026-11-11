@@ -39,6 +39,18 @@
             <i class="bi bi-tools me-1"></i> Mantenimiento
           </button>
           {% endif %}
+
+          {% if rol == 'recepcion' or rol == 'admin' or rol == 'administrador' %}
+          <button type="button" onclick="switchTab('mensajes')" id="tab-mensajes" class="btn btn-outline-primary fw-semibold btn-sm position-relative">
+            <i class="bi bi-chat-dots-fill me-1"></i> Mensajes Web
+            {% if mensajes_pendientes_count > 0 %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+              {{ mensajes_pendientes_count }}
+              <span class="visually-hidden">mensajes no leídos</span>
+            </span>
+            {% endif %}
+          </button>
+          {% endif %}
         </div>
 
         <a href="{% url 'logout_admin' %}" class="btn btn-outline-danger btn-sm fw-semibold ms-2 shadow-sm">
@@ -363,6 +375,107 @@
   </div>
   {% endif %}
 
+  <!-- Vista: Mensajes de Contacto Web -->
+  {% if rol == 'recepcion' or rol == 'admin' or rol == 'administrador' %}
+  <div id="view-mensajes" class="d-none card border-0 shadow-sm rounded-4 p-4 bg-white">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+      <div>
+        <h2 class="h5 fw-bold text-dark mb-0">
+          <i class="bi bi-envelope-paper-heart-fill text-warning me-2"></i>Bandeja de Mensajes de Contacto & Cotizaciones
+        </h2>
+        <small class="text-muted">Consultas enviadas por clientes y huéspedes desde el formulario público</small>
+      </div>
+      <span class="badge bg-primary px-3 py-2 fw-bold">{{ mensajes_contacto|length }} Total Recibidos</span>
+    </div>
+
+    {% if mensajes_contacto %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">Remitente</th>
+            <th>Correo Electrónico</th>
+            <th>Mensaje / Consulta</th>
+            <th>Fecha Envío</th>
+            <th>Estado</th>
+            <th class="text-end pe-3">Acción</th>
+          </tr>
+        </thead>
+        <tbody class="small">
+          {% for m in mensajes_contacto %}
+          <tr>
+            <td class="ps-3 fw-bold text-dark">{{ m.nombre }}</td>
+            <td><a href="mailto:{{ m.email }}" class="text-decoration-none">{{ m.email }}</a></td>
+            <td style="max-width: 320px;">
+              <div class="text-truncate" title="{{ m.mensaje }}">{{ m.mensaje }}</div>
+              {% if m.respuesta %}
+              <small class="text-success d-block mt-1">
+                <i class="bi bi-reply-fill me-1"></i><strong>Respuesta:</strong> {{ m.respuesta }}
+              </small>
+              {% endif %}
+            </td>
+            <td class="text-muted">{{ m.fecha_envio|date:"d/m/Y H:i" }}</td>
+            <td>
+              {% if m.estado == 'Pendiente' %}
+              <span class="badge bg-warning text-dark">Pendiente</span>
+              {% else %}
+              <span class="badge bg-success">Respondido</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-3">
+              <button onclick="abrirModalResponderMensaje({{ m.id }}, '{{ m.nombre|escapejs }}', '{{ m.email|escapejs }}', '{{ m.mensaje|escapejs }}', '{{ m.respuesta|default:''|escapejs }}')" class="btn btn-sm btn-outline-primary fw-bold">
+                <i class="bi bi-reply-all me-1"></i>{% if m.estado == 'Pendiente' %}Responder{% else %}Ver Detalle{% endif %}
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center text-muted p-5 border rounded-3 bg-light">
+      <i class="bi bi-inbox fs-2 text-muted d-block mb-2"></i>
+      No hay mensajes de contacto recibidos en la bandeja.
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL RESPONDER MENSAJE DE CONTACTO                      -->
+<!-- ======================================================== -->
+<div class="modal fade" id="modalResponderMensaje" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-lg">
+      <div class="modal-header bg-light border-0 py-3">
+        <div>
+          <h5 class="modal-title fw-bold text-dark">Responder Mensaje de Contacto</h5>
+          <small class="text-muted">Para: <strong id="lbl-resp-nombre" class="text-dark"></strong> (<span id="lbl-resp-email" class="text-primary"></span>)</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="card bg-light border-0 p-3 rounded-3 mb-3">
+          <small class="text-muted fw-bold d-block mb-1">Mensaje recibido:</small>
+          <p class="small text-dark mb-0 fst-italic" id="lbl-resp-consulta"></p>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-bold">Redactar Respuesta Oficial del Hotel *</label>
+          <textarea id="txt-resp-contenido" class="form-control form-control-sm" rows="4" placeholder="Estimado/a cliente, junto con saludar le informamos que..."></textarea>
+          <small class="text-muted" style="font-size: 0.75rem;">Se enviará notificación formal al correo del remitente.</small>
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" onclick="enviarRespuestaMensajeAjax()" class="btn btn-primary fw-bold shadow-sm" id="btn-confirmar-respuesta">
+          <i class="bi bi-send-fill me-1"></i> Enviar Respuesta
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ======================================================== -->
@@ -717,7 +830,7 @@
   };
 
   function switchTab(tabId) {
-    ['recepcion', 'housekeeping', 'mantenimiento'].forEach(t => {
+    ['recepcion', 'housekeeping', 'mantenimiento', 'mensajes'].forEach(t => {
       const btn = document.getElementById(`tab-${t}`);
       const view = document.getElementById(`view-${t}`);
       if(btn) btn.classList.remove('active');
@@ -1623,6 +1736,60 @@
         paintUI(false);
         showToast('Matriz restablecida a estado en tiempo real (Hoy).', 'info');
       });
+  }
+
+
+  // --- GESTIÓN DE MENSAJES DE CONTACTO WEB ---
+  let bsModalResponder = null;
+  let mensajeIdActual = null;
+
+  function abrirModalResponderMensaje(id, nombre, email, mensaje, respuestaExistente = '') {
+    mensajeIdActual = id;
+    document.getElementById('lbl-resp-nombre').innerText = nombre;
+    document.getElementById('lbl-resp-email').innerText = email;
+    document.getElementById('lbl-resp-consulta').innerText = `"${mensaje}"`;
+    const txtRespuesta = document.getElementById('txt-resp-contenido');
+    txtRespuesta.value = respuestaExistente || '';
+
+    const modalEl = document.getElementById('modalResponderMensaje');
+    if (!bsModalResponder && modalEl) {
+      bsModalResponder = new bootstrap.Modal(modalEl);
+    }
+    if (bsModalResponder) bsModalResponder.show();
+    setTimeout(() => txtRespuesta.focus(), 400);
+  }
+
+  function enviarRespuestaMensajeAjax() {
+    if (!mensajeIdActual) return;
+    const txt = document.getElementById('txt-resp-contenido').value.trim();
+    if (!txt) return showToast('Por favor redacta la respuesta para el remitente.', 'warning');
+
+    const btn = document.getElementById('btn-confirmar-respuesta');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando respuesta...';
+    }
+
+    fetch(`/api/contacto/responder/${mensajeIdActual}/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+      body: JSON.stringify({ respuesta: txt })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (btn) btn.disabled = false;
+      if (data.status === 'ok') {
+        showToast(data.message, 'success');
+        if (bsModalResponder) bsModalResponder.hide();
+        setTimeout(() => window.location.reload(), 2500);
+      } else {
+        showToast(data.message || 'Error al responder mensaje.', 'error');
+      }
+    })
+    .catch(() => {
+      if (btn) btn.disabled = false;
+      showToast('Error al conectar con el servidor.', 'error');
+    });
   }
 
 </script>

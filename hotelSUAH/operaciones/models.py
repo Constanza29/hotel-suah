@@ -58,3 +58,31 @@ class OrdenMantenimiento(models.Model):
     class Meta:
         verbose_name = "Orden de Mantenimiento"
         verbose_name_plural = "Órdenes de Mantenimiento"
+
+
+class MensajeContacto(models.Model):
+    """
+    Mensajes y cotizaciones recibidas desde el formulario web público.
+    Gestionados por Recepción y Administración.
+    """
+    ESTADOS = [
+        ('Pendiente', 'Pendiente de Respuesta'),
+        ('Respondido', 'Respondido'),
+    ]
+
+    nombre = models.CharField(max_length=150)
+    email = models.EmailField()
+    mensaje = models.TextField()
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='Pendiente')
+    respuesta = models.TextField(blank=True, null=True)
+    respondido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='mensajes_respondidos')
+    fecha_envio = models.DateTimeField(auto_now_add=True)
+    fecha_respuesta = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Mensaje #{self.id} de {self.nombre} ({self.email}) - {self.estado}"
+
+    class Meta:
+        verbose_name = "Mensaje de Contacto"
+        verbose_name_plural = "Mensajes de Contacto"
+        ordering = ['-fecha_envio']

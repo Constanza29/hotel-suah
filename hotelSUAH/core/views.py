@@ -11,7 +11,7 @@ import datetime
 
 from habitaciones.models import Habitación, TipoHabitacion
 from reservas.models import Reserva, Cliente, Folio, Cargo, Abono
-from operaciones.models import TareaLimpieza, OrdenMantenimiento
+from operaciones.models import TareaLimpieza, OrdenMantenimiento, MensajeContacto
 from core.security_validators import validar_politica_contrasena_chile
 from core.rut_and_email_validators import validar_documento_identidad, validar_correo_real, validar_telefono_chileno
 from core.mfa_service import generar_datos_mfa, validar_codigo_mfa
@@ -467,6 +467,10 @@ def panel_operativo(request):
         estado__in=['Abierta', 'EnReparacion']
     ).select_related('habitacion', 'reportado_por').order_by('-id')
 
+    # Mensajes de Contacto web recibidos (para Recepción y Administrador)
+    mensajes_contacto = MensajeContacto.objects.all().select_related('respondido_por').order_by('-fecha_envio')
+    mensajes_pendientes_count = mensajes_contacto.filter(estado='Pendiente').count()
+
     return render(request, 'admin/panel.html', {
         'rol': rol,
         'habitaciones': habitaciones,
@@ -479,6 +483,8 @@ def panel_operativo(request):
         'ocupacion_pct': ocupacion_pct,
         'solicitudes_aseo_ocupadas': solicitudes_aseo_ocupadas,
         'tickets_mantenimiento': tickets_mantenimiento,
+        'mensajes_contacto': mensajes_contacto,
+        'mensajes_pendientes_count': mensajes_pendientes_count,
     })
 
 @login_required
@@ -860,12 +866,47 @@ def enviar_mensaje_contacto_api(request):
     if len(mensaje) < 10:
         return JsonResponse({'status': 'error', 'message': 'Por favor escribe un mensaje de al menos 10 caracteres.'}, status=400)
 
-    # En producción aquí se envía correo vía SMTP o se guarda en BD
+    with transaction.atomic():
+        MensajeContacto.objects.create(
+            nombre=nombre,
+            email=email,
+            mensaje=mensaje,
+            estado='Pendiente'
+        )
+
     return JsonResponse({
         'status': 'ok',
-        'message': f'¡Gracias {nombre}! Tu mensaje ha sido enviado exitosamente a nuestro equipo de atención.'
+        'message': f'¡Gracias {nombre}! Tu mensaje ha sido recibido por nuestro equipo de Recepción y Administración.'
     })
 
+
+@login_required
+@require_POST
+def responder_mensaje_contacto_api(request, mensaje_id):
+    if not (es_recepcionista(request.user) or request.user.is_superuser):
+        return HttpResponseForbidden("Solo Recepción y Administración pueden responder mensajes de contacto.")
+
+    msg = get_object_or_404(MensajeContacto, id=mensaje_id)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        data = {}
+
+    respuesta = data.get('respuesta', '').strip()
+    if not respuesta:
+        return JsonResponse({'status': 'error', 'message': 'Por favor ingresa el texto de respuesta.'}, status=400)
+
+    with transaction.atomic():
+        msg.respuesta = respuesta
+        msg.estado = 'Respondido'
+        msg.respondido_por = request.user
+        msg.fecha_respuesta = timezone.now()
+        msg.save()
+
+    return JsonResponse({
+        'status': 'ok',
+        'message': f'Respuesta registrada y enviada con éxito al correo {msg.email}.'
+    })
 
 @login_required
 def consultar_disponibilidad_recepcion_api(request):
