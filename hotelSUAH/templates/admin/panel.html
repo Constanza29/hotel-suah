@@ -340,7 +340,7 @@
                   <span class="badge bg-secondary text-white">Sin Técnico</span>
                   {% endif %}
                 </div>
-                <small class="text-muted d-block">Reportado por: <strong>{{ t.reportado_por.get_full_name|default:t.reportado_por.username|default:"Huésped" }}</strong> | {{ t.fecha_reporte|date:"H:i" }} hrs</small>
+                <small class="text-muted d-block">Reportado por: <strong>{% if t.reportado_por %}{{ t.reportado_por.get_full_name|default:t.reportado_por.username }}{% else %}Huésped{% endif %}</strong> | {{ t.fecha_reporte|date:"H:i" }} hrs</small>
                 <span class="small fw-semibold text-danger mt-1 mb-2 d-block"><i class="bi bi-exclamation-circle-fill me-1"></i>{{ t.descripcion_falla }}</span>
                 <div class="d-flex align-items-center gap-1">
                   <small class="text-muted" style="font-size: 0.72rem;">Técnico Asignado:</small>
@@ -392,7 +392,7 @@
                   <span class="badge bg-secondary text-white">Sin Técnico</span>
                   {% endif %}
                 </div>
-                <small class="text-muted d-block">Reportado por: <strong>{{ t.reportado_por.get_full_name|default:t.reportado_por.username|default:"Personal" }}</strong> | {{ t.fecha_reporte|date:"H:i" }} hrs</small>
+                <small class="text-muted d-block">Reportado por: <strong>{% if t.reportado_por %}{{ t.reportado_por.get_full_name|default:t.reportado_por.username }}{% else %}Personal de Turno{% endif %}</strong> | {{ t.fecha_reporte|date:"H:i" }} hrs</small>
                 <span class="small fw-semibold text-danger mt-1 mb-2 d-block"><i class="bi bi-wrench me-1"></i>{{ t.descripcion_falla }}</span>
                 <div class="d-flex align-items-center gap-1">
                   <small class="text-muted" style="font-size: 0.72rem;">Técnico Asignado:</small>
@@ -607,7 +607,7 @@
                 <span class="fw-semibold text-danger d-block">{{ hm.descripcion_falla }}</span>
               </td>
               <td>
-                <span class="text-dark">{{ hm.reportado_por.get_full_name|default:hm.reportado_por.username|default:"Huésped" }}</span>
+                <span class="text-dark">{% if hm.reportado_por %}{{ hm.reportado_por.get_full_name|default:hm.reportado_por.username }}{% else %}Huésped{% endif %}</span>
               </td>
               <td>
                 {% if hm.asignado_a %}
