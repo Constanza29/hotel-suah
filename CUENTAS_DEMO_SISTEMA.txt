@@ -1,0 +1,70 @@
+================================================================================
+          SUAH - SISTEMA UNIFICADO DE ADMINISTRACIÓN HOTELERA
+                 LISTADO OFICIAL DE CUENTAS DEMO Y ACCESOS
+================================================================================
+
+Este documento contiene todas las credenciales activas en la base de datos para
+las pruebas, demostración docente y evaluación del sistema SUAH.
+
+--------------------------------------------------------------------------------
+1. ACCESO INTRANET / PERSONAL Y GERENCIA (URL: /login/admin/)
+--------------------------------------------------------------------------------
+
+A) ADMINISTRACIÓN GENERAL Y GERENCIA (Acceso a todas las áreas)
+   • Nombre Completo : Constanza Cortés
+   • Correo          : admin@suah.cl
+   • Contraseña      : admin123
+   • Permisos        : Acceso completo (Recepción, Housekeeping, Mantenimiento,
+                       Nómina de Personal, Métricas y Gestión Global).
+
+B) RECEPCIÓN / FRONT DESK (Check-in, Check-out, Terminal POS, Asignaciones)
+   • Recepcionista 1 : Matías Sepúlveda
+     - Correo        : rep@suah.cl
+     - Contraseña    : 1234
+   • Recepcionista 2 : Valentina Soto
+     - Correo        : valentina.soto@suah.cl
+     - Contraseña    : 1234
+
+C) HOUSEKEEPING / MUCAMAS Y ASEO (Limpieza de Habitaciones, Insumos de Huéspedes)
+   • Camarera Jefa   : Marta Henríquez
+     - Correo        : aseo@suah.cl
+     - Contraseña    : 1234
+   • Camarera 2      : Camila Vega
+     - Correo        : camila.vega@suah.cl
+     - Contraseña    : 1234
+   • Camarera 3      : Rosa Morales
+     - Correo        : rosa.morales@suah.cl
+     - Contraseña    : 1234
+
+D) MANTENIMIENTO TÉCNICO (Reparaciones, Desperfectos, Solicitudes Técnicas Huéspedes)
+   • Técnico Titular : Jorge Valenzuela
+     - Correo        : mant@suah.cl
+     - Contraseña    : 1234
+   • Técnico Apoyo   : Pedro Araya
+     - Correo        : pedro.araya@suah.cl
+     - Contraseña    : 1234
+
+--------------------------------------------------------------------------------
+2. ACCESO CLIENTE / HUÉSPED (PORTAL WEB - URL: /)
+--------------------------------------------------------------------------------
+   • Nombre Completo : Constanza Cortés
+   • RUT             : 19.876.543-2
+   • Correo          : cliente@suah.cl
+   • Contraseña      : Cliente123!
+   • Permisos        : Reserva online, Webpay integrado, Portal de Huésped,
+                       Solicitud de Insumos y Reportes de Mantenimiento en vivo.
+
+   * NOTA: También es posible registrar cualquier nuevo huésped con un correo real 
+     o de prueba directamente desde el botón "Iniciar Sesión / Registro Seguro".
+
+--------------------------------------------------------------------------------
+3. DATOS DE PRUEBA WEBPAY PLUS (TRANSBANK INTEGRACIÓN OFICIAL)
+--------------------------------------------------------------------------------
+   • Número de Tarjeta : 6620 0000 0000 0003  (Aprobación Directa)
+   • Fecha Expiración  : 12/28 (o cualquier fecha futura)
+   • CVV               : 123
+   • Código Autoriz.   : 1213
+
+================================================================================
+               Hotel SUAH © 2026 - Documento Interno de Soporte
+================================================================================
