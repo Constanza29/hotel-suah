@@ -41,15 +41,36 @@
       box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
     }
 
-    /* Toast Flotante */
+    /* Notificaciones / Toasts Flotantes Superiores Centradas */
     #toast-container {
       position: fixed;
-      bottom: 1.5rem;
-      right: 1.5rem;
-      z-index: 1090;
+      top: 1.75rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2000;
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      align-items: center;
+      gap: 0.75rem;
+      pointer-events: none;
+      width: 90%;
+      max-width: 550px;
+    }
+    .suah-toast {
+      pointer-events: auto;
+      animation: toastSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+    }
+    @keyframes toastSlideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-25px) scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
     }
   </style>
   {% block extra_head %}{% endblock %}
@@ -83,27 +104,49 @@
     }
     const csrftoken = getCsrfToken();
 
-    function showToast(message, type = 'info') {
+    function showToast(message, type = 'info', duration = 7000) {
       const container = document.getElementById('toast-container');
+      if (!container) return;
       const toast = document.createElement('div');
       
-      let bgClass = 'bg-dark text-white';
-      let icon = '<i class="bi bi-info-circle-fill me-2"></i>';
+      let bgClass = 'bg-dark text-white border border-light border-opacity-25';
+      let icon = '<i class="bi bi-info-circle-fill fs-4 me-3 text-info"></i>';
+      let title = 'Información del Sistema';
 
-      if(type === 'success') { bgClass = 'bg-success text-white'; icon = '<i class="bi bi-check-circle-fill me-2"></i>'; }
-      if(type === 'warning') { bgClass = 'bg-warning text-dark'; icon = '<i class="bi bi-exclamation-triangle-fill me-2"></i>'; }
-      if(type === 'error') { bgClass = 'bg-danger text-white'; icon = '<i class="bi bi-x-circle-fill me-2"></i>'; }
+      if(type === 'success') { 
+        bgClass = 'bg-success text-white border-0'; 
+        icon = '<i class="bi bi-check-circle-fill fs-3 me-3"></i>'; 
+        title = 'Operación Exitosa';
+      } else if(type === 'warning') { 
+        bgClass = 'bg-warning text-dark border-0'; 
+        icon = '<i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-dark"></i>'; 
+        title = 'Atención Requerida';
+      } else if(type === 'error') { 
+        bgClass = 'bg-danger text-white border-0'; 
+        icon = '<i class="bi bi-x-octagon-fill fs-3 me-3"></i>'; 
+        title = 'Error del Sistema';
+      }
 
-      toast.className = `alert ${bgClass} shadow-lg py-2 px-3 rounded-3 d-flex align-items-center mb-1`;
-      toast.style.minWidth = '260px';
-      toast.style.transition = 'opacity 0.3s ease';
-      toast.innerHTML = `${icon} <span class="small fw-semibold">${message}</span>`;
+      toast.className = `alert ${bgClass} suah-toast py-3 px-4 rounded-4 d-flex align-items-center justify-content-between mb-0 w-100`;
+      toast.innerHTML = `
+        <div class="d-flex align-items-center">
+          ${icon}
+          <div>
+            <div class="fw-bold small text-uppercase opacity-75">${title}</div>
+            <div class="fs-6 fw-semibold">${message}</div>
+          </div>
+        </div>
+        <button type="button" class="btn-close ${type === 'warning' ? '' : 'btn-close-white'} ms-3" aria-label="Cerrar" onclick="this.closest('.suah-toast').remove()"></button>
+      `;
+
       container.appendChild(toast);
 
+      // Duración extendida de 7 segundos para que el usuario y profesor alcancen a leer y fotografiar
       setTimeout(() => {
         toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 300);
-      }, 4000);
+        toast.style.transform = 'translateY(-15px) scale(0.95)';
+        setTimeout(() => toast.remove(), 350);
+      }, duration);
     }
   </script>
   {% block extra_scripts %}{% endblock %}
