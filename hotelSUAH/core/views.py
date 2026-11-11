@@ -584,6 +584,20 @@ def panel_operativo(request):
     mensajes_contacto = MensajeContacto.objects.all().select_related('respondido_por').order_by('-fecha_envio')
     mensajes_pendientes_count = mensajes_contacto.filter(estado='Pendiente').count()
 
+    # Personal de staff para asignaciones
+    staff_aseo = User.objects.filter(groups__name='housekeeping').order_by('first_name')
+    staff_mant = User.objects.filter(groups__name='mantenimiento').order_by('first_name')
+
+    # Historial de Limpiezas finalizadas
+    historial_limpiezas = TareaLimpieza.objects.filter(
+        estado='Finalizada'
+    ).select_related('habitacion', 'responsable').order_by('-fecha_actualizacion')[:40]
+
+    # Historial de Mantenimientos resueltos
+    historial_mantenimientos = OrdenMantenimiento.objects.filter(
+        estado='Resuelta'
+    ).select_related('habitacion', 'reportado_por', 'asignado_a').order_by('-fecha_resolucion')[:40]
+
     return render(request, 'admin/panel.html', {
         'rol': rol,
         'habitaciones': habitaciones,
@@ -598,6 +612,10 @@ def panel_operativo(request):
         'tickets_mantenimiento': tickets_mantenimiento,
         'mensajes_contacto': mensajes_contacto,
         'mensajes_pendientes_count': mensajes_pendientes_count,
+        'staff_aseo': staff_aseo,
+        'staff_mant': staff_mant,
+        'historial_limpiezas': historial_limpiezas,
+        'historial_mantenimientos': historial_mantenimientos,
     })
 
 @login_required
@@ -940,6 +958,8 @@ def resolver_mantenimiento(request, numero):
         if orden:
             orden.estado = 'Resuelta'
             orden.fecha_resolucion = timezone.now()
+            if not orden.asignado_a:
+                orden.asignado_a = request.user
             orden.save()
 
         # Si la habitación estaba Ocupada por un huésped, se mantiene Ocupada
@@ -1096,3 +1116,52 @@ def consultar_disponibilidad_recepcion_api(request):
         'hasta': hasta_str,
         'habitaciones': data
     })
+
+@login_required
+@require_POST
+def asignar_tarea_aseo(request, tarea_id):
+    if not (es_housekeeping(request.user) or es_recepcionista(request.user) or request.user.is_superuser):
+        return HttpResponseForbidden("No tienes permiso para asignar tareas de aseo.")
+
+    tarea = get_object_or_404(TareaLimpieza, id=tarea_id)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        data = {}
+
+    user_id = data.get('usuario_id')
+    if user_id:
+        usuario = get_object_or_404(User, id=user_id)
+        tarea.responsable = usuario
+        nombre_resp = usuario.get_full_name() or usuario.username
+    else:
+        tarea.responsable = None
+        nombre_resp = "Sin asignar"
+    tarea.save()
+
+    return JsonResponse({'status': 'ok', 'message': f'Tarea asignada exitosamente a {nombre_resp}.'})
+
+
+@login_required
+@require_POST
+def asignar_orden_mantenimiento(request, orden_id):
+    if not (es_mantenimiento(request.user) or es_recepcionista(request.user) or request.user.is_superuser):
+        return HttpResponseForbidden("No tienes permiso para asignar órdenes de mantenimiento.")
+
+    orden = get_object_or_404(OrdenMantenimiento, id=orden_id)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        data = {}
+
+    user_id = data.get('usuario_id')
+    if user_id:
+        usuario = get_object_or_404(User, id=user_id)
+        orden.asignado_a = usuario
+        nombre_resp = usuario.get_full_name() or usuario.username
+    else:
+        orden.asignado_a = None
+        nombre_resp = "Sin asignar"
+    orden.save()
+
+    return JsonResponse({'status': 'ok', 'message': f'Orden asignada exitosamente al técnico {nombre_resp}.'})

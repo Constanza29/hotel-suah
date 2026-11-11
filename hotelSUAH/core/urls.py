@@ -35,5 +35,7 @@ urlpatterns = [
     path('api/resolver-mantenimiento/<str:numero>/', views.resolver_mantenimiento, name='resolver_mantenimiento'),
     path('api/contacto/enviar/', views.enviar_mensaje_contacto_api, name='enviar_mensaje_contacto'),
     path('api/contacto/responder/<int:mensaje_id>/', views.responder_mensaje_contacto_api, name='responder_mensaje_contacto'),
+    path('api/housekeeping/asignar-tarea/<int:tarea_id>/', views.asignar_tarea_aseo, name='asignar_tarea_aseo'),
+    path('api/mantenimiento/asignar-orden/<int:orden_id>/', views.asignar_orden_mantenimiento, name='asignar_orden_mantenimiento'),
     path('api/recepcion/consultar-disponibilidad/', views.consultar_disponibilidad_recepcion_api, name='consultar_disponibilidad_recepcion'),
 ]

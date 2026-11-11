@@ -47,6 +47,7 @@ class OrdenMantenimiento(models.Model):
 
     habitacion = models.ForeignKey(Habitación, on_delete=models.CASCADE, related_name='ordenes_mantenimiento')
     reportado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='fallas_reportadas')
+    asignado_a = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='mantenciones_asignadas')
     descripcion_falla = models.TextField() # Ej: Falla eléctrica en AC
     estado = models.CharField(max_length=20, choices=ESTADOS, default='Abierta')
     fecha_reporte = models.DateTimeField(auto_now_add=True)
