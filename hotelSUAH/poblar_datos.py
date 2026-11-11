@@ -19,29 +19,34 @@ for r in roles:
     g, _ = Group.objects.get_or_create(name=r)
     grupos[r] = g
 
-# 2. Crear Usuarios Empleados Demo (Institucionales @suah.cl)
-# Superuser admin
-if not User.objects.filter(username='admin@suah.cl').exists():
-    admin = User.objects.create_superuser('admin@suah.cl', 'admin@suah.cl', 'admin123', first_name='Administrador General')
-    print("Admin creado: admin@suah.cl / admin123")
+# 2. Crear Usuarios Empleados Demo (Institucionales @suah.cl con Nombres Reales)
+personal_staff = [
+    ('admin@suah.cl', 'Constanza', 'Cortés', 'admin', 'admin123', True),
+    ('rep@suah.cl', 'Matías', 'Sepúlveda', 'recepcion', '1234', False),
+    ('valentina.soto@suah.cl', 'Valentina', 'Soto', 'recepcion', '1234', False),
+    ('aseo@suah.cl', 'Marta', 'Henríquez', 'housekeeping', '1234', False),
+    ('camila.vega@suah.cl', 'Camila', 'Vega', 'housekeeping', '1234', False),
+    ('rosa.morales@suah.cl', 'Rosa', 'Morales', 'housekeeping', '1234', False),
+    ('mant@suah.cl', 'Jorge', 'Valenzuela', 'mantenimiento', '1234', False),
+    ('pedro.araya@suah.cl', 'Pedro', 'Araya', 'mantenimiento', '1234', False),
+]
 
-# Recepcionista
-if not User.objects.filter(username='rep@suah.cl').exists():
-    u_rep = User.objects.create_user('rep@suah.cl', 'rep@suah.cl', '1234', first_name='Recepcionista')
-    u_rep.groups.add(grupos['recepcion'])
-    print("Recepcionista creado: rep@suah.cl / 1234")
+for email, fn, ln, rol, pwd, es_super in personal_staff:
+    u = User.objects.filter(username=email).first()
+    if not u:
+        if es_super:
+            u = User.objects.create_superuser(email, email, pwd, first_name=fn, last_name=ln)
+        else:
+            u = User.objects.create_user(email, email, pwd, first_name=fn, last_name=ln)
+    else:
+        u.first_name = fn
+        u.last_name = ln
+        u.save()
 
-# Housekeeping
-if not User.objects.filter(username='aseo@suah.cl').exists():
-    u_aseo = User.objects.create_user('aseo@suah.cl', 'aseo@suah.cl', '1234', first_name='Camarera Limpieza')
-    u_aseo.groups.add(grupos['housekeeping'])
-    print("Aseo creado: aseo@suah.cl / 1234")
-
-# Mantenimiento
-if not User.objects.filter(username='mant@suah.cl').exists():
-    u_mant = User.objects.create_user('mant@suah.cl', 'mant@suah.cl', '1234', first_name='Técnico Mantención')
-    u_mant.groups.add(grupos['mantenimiento'])
-    print("Mantenimiento creado: mant@suah.cl / 1234")
+    if rol in grupos:
+        u.groups.clear()
+        u.groups.add(grupos[rol])
+    print(f"Personal: {fn} {ln} ({email}) - Rol: {rol}")
 
 # Cliente demo para pruebas públicas
 if not User.objects.filter(username='cliente@suah.cl').exists():

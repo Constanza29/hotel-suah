@@ -584,9 +584,12 @@ def panel_operativo(request):
     mensajes_contacto = MensajeContacto.objects.all().select_related('respondido_por').order_by('-fecha_envio')
     mensajes_pendientes_count = mensajes_contacto.filter(estado='Pendiente').count()
 
-    # Personal de staff para asignaciones
+    # Personal de staff para asignaciones y nómina general
     staff_aseo = User.objects.filter(groups__name='housekeeping').order_by('first_name')
     staff_mant = User.objects.filter(groups__name='mantenimiento').order_by('first_name')
+    nomina_personal = User.objects.filter(
+        groups__name__in=['recepcion', 'housekeeping', 'mantenimiento']
+    ).distinct().order_by('first_name')
 
     # Historial de Limpiezas finalizadas
     historial_limpiezas = TareaLimpieza.objects.filter(
@@ -614,6 +617,7 @@ def panel_operativo(request):
         'mensajes_pendientes_count': mensajes_pendientes_count,
         'staff_aseo': staff_aseo,
         'staff_mant': staff_mant,
+        'nomina_personal': nomina_personal,
         'historial_limpiezas': historial_limpiezas,
         'historial_mantenimientos': historial_mantenimientos,
     })
@@ -1165,3 +1169,49 @@ def asignar_orden_mantenimiento(request, orden_id):
     orden.save()
 
     return JsonResponse({'status': 'ok', 'message': f'Orden asignada exitosamente al técnico {nombre_resp}.'})
+
+@login_required
+@require_POST
+def crear_personal_api(request):
+    if not (request.user.is_superuser or request.user.groups.filter(name='admin').exists()):
+        return HttpResponseForbidden("Solo el Administrador General puede dar de alta nuevo personal.")
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Datos inválidos.'}, status=400)
+
+    nombre = data.get('nombre', '').strip()
+    apellido = data.get('apellido', '').strip()
+    email = data.get('email', '').strip().lower()
+    rol = data.get('rol', '').strip()
+    password = data.get('password', '').strip()
+
+    if not nombre or not apellido or not email or not rol or not password:
+        return JsonResponse({'status': 'error', 'message': 'Todos los campos son obligatorios.'}, status=400)
+
+    if rol not in ['recepcion', 'housekeeping', 'mantenimiento']:
+        return JsonResponse({'status': 'error', 'message': 'El rol seleccionado no es válido.'}, status=400)
+
+    if User.objects.filter(username=email).exists():
+        return JsonResponse({'status': 'error', 'message': f'Ya existe un usuario registrado con el correo {email}.'}, status=400)
+
+    if len(password) < 4:
+        return JsonResponse({'status': 'error', 'message': 'La contraseña inicial debe tener al menos 4 caracteres.'}, status=400)
+
+    with transaction.atomic():
+        nuevo_user = User.objects.create_user(
+            username=email,
+            email=email,
+            password=password,
+            first_name=nombre,
+            last_name=apellido
+        )
+        grupo = Group.objects.filter(name=rol).first()
+        if grupo:
+            nuevo_user.groups.add(grupo)
+
+    return JsonResponse({
+        'status': 'ok',
+        'message': f'Empleado/a {nombre} {apellido} registrado/a exitosamente en el área de {rol.capitalize()}.'
+    })

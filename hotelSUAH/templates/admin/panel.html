@@ -54,6 +54,12 @@
             <i class="bi bi-clock-history me-1"></i> Historial Operativo
           </button>
           {% endif %}
+
+          {% if rol == 'admin' or rol == 'administrador' %}
+          <button type="button" onclick="switchTab('personal')" id="tab-personal" class="btn btn-outline-dark fw-semibold btn-sm">
+            <i class="bi bi-people-fill me-1"></i> Nómina de Personal
+          </button>
+          {% endif %}
         </div>
 
         <a href="{% url 'logout_admin' %}" class="btn btn-outline-danger btn-sm fw-semibold ms-2 shadow-sm">
@@ -637,7 +643,132 @@
   </div>
   {% endif %}
 
+  <!-- Vista: Gestión y Nómina de Personal (Admin) -->
+  {% if rol == 'admin' or rol == 'administrador' %}
+  <div id="view-personal" class="d-none card border-0 shadow-sm rounded-4 p-4 bg-white">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 border-bottom pb-3 mb-4">
+      <div>
+        <h2 class="h5 fw-bold text-dark mb-0">
+          <i class="bi bi-people-fill text-dark me-2"></i>Gestión de Personal & Roles del Hotel
+        </h2>
+        <small class="text-muted">Registro oficial de empleados, turnos y credenciales de acceso seguro</small>
+      </div>
+      <div>
+        <button type="button" onclick="abrirModalCrearPersonal()" class="btn btn-dark fw-bold btn-sm shadow-sm">
+          <i class="bi bi-person-plus-fill me-1"></i> Contratar / Registrar Empleado
+        </button>
+      </div>
+    </div>
 
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">Empleado</th>
+            <th>Correo Institucional</th>
+            <th>Área / Cargo</th>
+            <th>Estado de Acceso</th>
+            <th class="text-end pe-3">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="small">
+          {% for p in nomina_personal %}
+          <tr>
+            <td class="ps-3">
+              <div class="d-flex align-items-center">
+                <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 36px; height: 36px; font-size: 0.85rem;">
+                  {{ p.first_name|slice:":1" }}{{ p.last_name|slice:":1" }}
+                </div>
+                <div>
+                  <strong class="text-dark d-block">{{ p.get_full_name|default:p.username }}</strong>
+                  <small class="text-muted">ID Empleado #{{ p.id }}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <code>{{ p.email }}</code>
+            </td>
+            <td>
+              {% for g in p.groups.all %}
+                {% if g.name == 'recepcion' %}
+                <span class="badge bg-primary text-uppercase px-2 py-1"><i class="bi bi-calendar-check me-1"></i>Recepción</span>
+                {% elif g.name == 'housekeeping' %}
+                <span class="badge bg-warning text-dark text-uppercase px-2 py-1"><i class="bi bi-brush me-1"></i>Housekeeping</span>
+                {% elif g.name == 'mantenimiento' %}
+                <span class="badge bg-danger text-uppercase px-2 py-1"><i class="bi bi-tools me-1"></i>Mantenimiento</span>
+                {% endif %}
+              {% empty %}
+                <span class="badge bg-secondary">Sin Rol</span>
+              {% endfor %}
+            </td>
+            <td>
+              <span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-check-circle-fill me-1"></i>Habilitado</span>
+            </td>
+            <td class="text-end pe-3">
+              <span class="badge bg-light text-muted border">Activo en Turno</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+
+</div>
+
+
+<!-- Modal Registrar Empleado (Admin) -->
+<div class="modal fade" id="modalCrearPersonal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-lg">
+      <div class="modal-header bg-light border-0 py-3">
+        <div>
+          <h5 class="modal-title fw-bold text-dark">Registrar Nuevo Empleado</h5>
+          <small class="text-muted">Dar de alta cuenta institucional en el sistema hotelero</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label small fw-bold">Nombre *</label>
+            <input type="text" id="nuevo-emp-nombre" placeholder="Ej: Marcela" class="form-control form-control-sm">
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-bold">Apellido *</label>
+            <input type="text" id="nuevo-emp-apellido" placeholder="Ej: Soto" class="form-control form-control-sm">
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-bold">Correo Institucional *</label>
+          <input type="email" id="nuevo-emp-email" placeholder="nombre.apellido@suah.cl" class="form-control form-control-sm">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-bold">Área / Cargo de Trabajo *</label>
+          <select id="nuevo-emp-rol" class="form-select form-select-sm">
+            <option value="recepcion">Recepción & Mostrador</option>
+            <option value="housekeeping">Housekeeping (Aseo & Insumos)</option>
+            <option value="mantenimiento">Mantenimiento Técnico</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-bold">Contraseña Inicial de Acceso *</label>
+          <input type="password" id="nuevo-emp-password" placeholder="Mínimo 4 caracteres (ej: 1234)" class="form-control form-control-sm">
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" onclick="enviarCrearPersonalAjax()" class="btn btn-dark fw-bold shadow-sm" id="btn-guardar-empleado">
+          <i class="bi bi-check-lg me-1"></i> Registrar Empleado
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ======================================================== -->
@@ -1042,7 +1173,7 @@
   };
 
   function switchTab(tabId) {
-    ['recepcion', 'housekeeping', 'mantenimiento', 'mensajes', 'historial'].forEach(t => {
+    ['recepcion', 'housekeeping', 'mantenimiento', 'mensajes', 'historial', 'personal'].forEach(t => {
       const btn = document.getElementById(`tab-${t}`);
       const view = document.getElementById(`view-${t}`);
       if(btn) btn.classList.remove('active');
@@ -2056,6 +2187,59 @@
       setTimeout(() => window.location.reload(), 1500);
     })
     .catch(() => showToast('Error al asignar orden de mantenimiento.', 'error'));
+  }
+
+
+  // --- GESTIÓN DE PERSONAL (ADMIN) ---
+  let bsModalCrearEmp = null;
+
+  function abrirModalCrearPersonal() {
+    const el = document.getElementById('modalCrearPersonal');
+    if (!bsModalCrearEmp && el) bsModalCrearEmp = new bootstrap.Modal(el);
+    document.getElementById('nuevo-emp-nombre').value = '';
+    document.getElementById('nuevo-emp-apellido').value = '';
+    document.getElementById('nuevo-emp-email').value = '';
+    document.getElementById('nuevo-emp-password').value = '1234';
+    if (bsModalCrearEmp) bsModalCrearEmp.show();
+  }
+
+  function enviarCrearPersonalAjax() {
+    const fn = document.getElementById('nuevo-emp-nombre').value.trim();
+    const ln = document.getElementById('nuevo-emp-apellido').value.trim();
+    const email = document.getElementById('nuevo-emp-email').value.trim();
+    const rol = document.getElementById('nuevo-emp-rol').value;
+    const pwd = document.getElementById('nuevo-emp-password').value.trim();
+
+    if (!fn || !ln || !email || !pwd) {
+      return showToast('Por favor completa todos los campos del nuevo empleado.', 'warning');
+    }
+
+    const btn = document.getElementById('btn-guardar-empleado');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Registrando...';
+    }
+
+    fetch('/api/personal/crear/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+      body: JSON.stringify({ nombre: fn, apellido: ln, email: email, rol: rol, password: pwd })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (btn) btn.disabled = false;
+      if (data.status === 'ok') {
+        showToast(data.message, 'success');
+        if (bsModalCrearEmp) bsModalCrearEmp.hide();
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        showToast(data.message || 'Error al registrar personal.', 'error');
+      }
+    })
+    .catch(() => {
+      if (btn) btn.disabled = false;
+      showToast('Error de conexión con el servidor.', 'error');
+    });
   }
 
 </script>
