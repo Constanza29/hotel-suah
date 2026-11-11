@@ -82,7 +82,7 @@
     <div class="col-12 col-lg-3">
       <div class="card border-0 shadow-sm rounded-4 p-4 bg-white sticky-top" style="top: 1rem;">
         <h2 class="h6 fw-bold text-dark border-bottom pb-3 mb-3">
-          <i class="bi bi-pie-chart-fill text-primary me-2"></i>Dashboard Ocupación (RF-01)
+          <i class="bi bi-pie-chart-fill text-primary me-2"></i>Dashboard Ocupación
         </h2>
         
         <ul class="list-group list-group-flush small mb-3">
@@ -129,7 +129,7 @@
       <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 border-bottom pb-3 mb-3">
           <h2 class="h5 fw-bold text-dark mb-0">
-            <i class="bi bi-grid-3x3-gap-fill text-suah-gold me-2"></i>Matriz de Habitaciones (CU-01)
+            <i class="bi bi-grid-3x3-gap-fill text-suah-gold me-2"></i>Matriz de Habitaciones
           </h2>
           <div class="d-flex gap-2">
             <span class="badge bg-light text-dark border">Piso 1: Estándar (101-108)</span>
@@ -138,7 +138,7 @@
           </div>
         </div>
 
-        <!-- Filtro por Fechas (Diagrama CU-01: ¿Filtra con fechas? -> RN-01, RN-02, RN-03) -->
+        <!-- Filtro por Fechas de Disponibilidad -->
         <div class="card bg-light border-0 p-3 rounded-3 mb-4">
           <div class="row g-2 align-items-center">
             <div class="col-12 col-md-3">
@@ -238,7 +238,7 @@
   <div id="view-housekeeping" class="{% if rol != 'housekeeping' %}d-none{% endif %} card border-0 shadow-sm rounded-4 p-4 bg-white">
     <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
       <h2 class="h5 fw-bold text-dark mb-0">
-        <i class="bi bi-check2-square text-warning me-2"></i>Tareas de Aseo y Limpieza (CU-03)
+        <i class="bi bi-check2-square text-warning me-2"></i>Tareas de Aseo y Limpieza
       </h2>
       <span class="badge bg-warning text-dark px-3 py-2 fw-bold" id="hk-counter">0 Pendientes</span>
     </div>
@@ -319,7 +319,7 @@
     <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
       <div>
         <h2 class="h5 fw-bold text-dark mb-0">
-          <i class="bi bi-tools text-danger me-2"></i>Gestión de Mantenimiento & Soporte Técnico (RF-04)
+          <i class="bi bi-tools text-danger me-2"></i>Gestión de Mantenimiento & Soporte Técnico
         </h2>
         <small class="text-muted">Tickets de averías, reportes de huéspedes y habitaciones bloqueadas</small>
       </div>
@@ -1025,7 +1025,7 @@
 </div>
 
 
-<!-- Modal Checklist de Insumos y Limpieza (CU-03) -->
+<!-- Modal Checklist de Insumos y Limpieza -->
 <div class="modal fade" id="modalChecklistAseo" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4 border-0 shadow-lg">
@@ -1082,7 +1082,7 @@
           <input type="text" id="chk-observaciones" class="form-control form-control-sm" placeholder="Ej: Repuesto adicional de toalla de mano">
         </div>
 
-        <!-- Sección Bifurcación Desperfecto (Diagrama CU-03 / CU-04) -->
+        <!-- Sección Bifurcación Desperfecto  -->
         <div class="card border-danger-subtle bg-danger-subtle p-3 rounded-3 mb-2">
           <div class="d-flex align-items-center justify-content-between mb-2">
             <span class="small fw-bold text-danger">
@@ -1096,10 +1096,10 @@
             <label class="form-label small fw-bold text-danger mb-1">Descripción del desperfecto *</label>
             <input type="text" id="txt-falla-aseo-desc" class="form-control form-control-sm border-danger" placeholder="Ej: Fuga de agua en lavamanos / TV sin señal">
             <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">
-              ⚠️ La habitación será bloqueada preventivamente y transferida de inmediato al equipo de Mantenimiento (CU-04).
+              ⚠️ La habitación será bloqueada preventivamente y transferida de inmediato al equipo de Mantenimiento .
             </small>
             <button type="button" onclick="ejecutarBloqueoDesdeAseo()" class="btn btn-danger btn-sm w-100 fw-bold mt-2 shadow-sm">
-              <i class="bi bi-shield-slash-fill me-1"></i> Solicitar Bloqueo Técnico (CU-04)
+              <i class="bi bi-shield-slash-fill me-1"></i> Solicitar Bloqueo Técnico 
             </button>
           </div>
         </div>
@@ -1205,7 +1205,7 @@
   ];
 
   function paintUI() {
-    // 1. Matriz de Habitaciones (CU-01)
+    // 1. Matriz de Habitaciones
     const matrix = document.getElementById('room-matrix');
     if (matrix) {
       matrix.innerHTML = '';
@@ -1329,7 +1329,7 @@
               <i class="bi bi-person-check-fill me-2"></i>Realizar Check-in Directo
             </button>
             <button onclick="reportarFalla('${data.numero}')" class="btn btn-outline-danger btn-sm fw-semibold mt-2">
-              <i class="bi bi-cone me-1"></i>Bloquear por Mantenimiento (RF-04)
+              <i class="bi bi-cone me-1"></i>Bloquear por Mantenimiento 
             </button>
           </div>
         </div>
@@ -1363,7 +1363,7 @@
 
           <div class="card border mb-3 rounded-3">
             <div class="card-header bg-white py-2 fw-bold small text-secondary">
-              <i class="bi bi-receipt me-1"></i>Desglose de Folio / Cargos (RF-05)
+              <i class="bi bi-receipt me-1"></i>Desglose de Folio / Cargos 
             </div>
             <ul class="list-group list-group-flush small">
               ${f.cargos.map(c => `<li class="list-group-item d-flex justify-content-between py-1.5"><span>${c.desc}</span> <strong class="text-dark">$${c.amount.toLocaleString()}</strong></li>`).join('')}
@@ -1375,7 +1375,7 @@
 
           <div class="card border mb-3 rounded-3">
             <div class="card-header bg-white py-2 fw-bold small text-secondary">
-              <i class="bi bi-wallet2 me-1"></i>Historial de Pagos y Abonos (RF-02)
+              <i class="bi bi-wallet2 me-1"></i>Historial de Pagos y Abonos 
             </div>
             <ul class="list-group list-group-flush small">
               ${f.payments.length > 0 ? f.payments.map(p => `<li class="list-group-item d-flex justify-content-between py-1.5 text-success"><span>${p.desc}</span> <strong>-$${p.amount.toLocaleString()}</strong></li>`).join('') : '<li class="list-group-item text-muted py-2 fst-italic">No hay abonos registrados</li>'}
@@ -1631,7 +1631,7 @@
       subtitulo.innerText = `Liquidar el 100% del saldo pendiente ($${balance.toLocaleString()} CLP)`;
       inputMonto.value = balance;
     } else {
-      titulo.innerText = 'Registrar Abono Parcial (RF-02)';
+      titulo.innerText = 'Registrar Abono Parcial ';
       subtitulo.innerText = `Saldo pendiente actual: $${balance.toLocaleString()} CLP`;
       inputMonto.value = '';
       inputMonto.placeholder = 'Ingrese monto a abonar';
@@ -1764,7 +1764,7 @@
     ejecutarLlamadaAbono(num, monto, metodo, btnConfirm);
   }
 
-  // --- COMPROBANTE BOLETA RF-05 ---
+  // --- COMPROBANTE BOLETA  ---
   function generarComprobanteRF05(num, balance) {
     if(balance > 0) return showToast(`Debe liquidar los $${balance.toLocaleString()} CLP pendientes antes del check-out.`, 'error');
 
@@ -1782,7 +1782,7 @@
         
         <div class="text-center border-bottom border-dark pb-3 mb-3">
           <h2 class="h4 fw-bold text-suah-gold mb-0">SUAH HOTEL S.A.</h2>
-          <small class="text-muted text-uppercase tracking-wider">Liquidación de Estancia y Comprobante de Check-Out (RF-05 / RF-06)</small>
+          <small class="text-muted text-uppercase tracking-wider">Liquidación de Estancia y Comprobante de Check-Out </small>
         </div>
         
         <div class="row small mb-3">
@@ -1931,7 +1931,7 @@
     });
   }
 
-  // --- CHECKLIST DE INSUMOS Y ASEO (CU-03) ---
+  // --- CHECKLIST DE INSUMOS Y ASEO  ---
   function abrirChecklistAseo(num) {
     document.getElementById('chk-hab-numero').innerText = num;
     document.getElementById('chk-sabanas').checked = true;
@@ -2018,7 +2018,7 @@
   }
 
 
-  // --- CONSULTA DISPONIBILIDAD CON FILTRO POR FECHAS (CU-01) ---
+  // --- CONSULTA DISPONIBILIDAD CON FILTRO POR FECHAS  ---
   let filtroFechasActivo = false;
 
   function consultarDisponibilidadFechasCU01() {
@@ -2063,7 +2063,7 @@
 
           const disponiblesRango = data.habitaciones.filter(h => h.disponible_rango).length;
           msg.className = 'small alert alert-info py-1 px-3 mt-2 mb-0 d-flex justify-content-between align-items-center';
-          msg.innerHTML = `<span><strong>CU-01 / RN-01:</strong> Del <strong>${desde}</strong> al <strong>${hasta}</strong> hay <strong>${disponiblesRango} de ${data.habitaciones.length}</strong> habitaciones disponibles.</span> <span class="badge bg-primary">Filtro Activo</span>`;
+          msg.innerHTML = `<span><strong>Disponibilidad:</strong> Del <strong>${desde}</strong> al <strong>${hasta}</strong> hay <strong>${disponiblesRango} de ${data.habitaciones.length}</strong> habitaciones disponibles.</span> <span class="badge bg-primary">Filtro Activo</span>`;
           showToast(`Disponibilidad calculada: ${disponiblesRango} habitaciones aptas.`, 'info');
         } else {
           showToast(data.message || 'Error al consultar disponibilidad.', 'error');

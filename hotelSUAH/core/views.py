@@ -693,7 +693,7 @@ def abonar_folio(request, numero):
     if monto <= 0:
         return JsonResponse({'status': 'error', 'message': 'El monto a abonar debe ser mayor a cero.'}, status=400)
 
-    Abono.objects.create(folio=reserva.folio, descripcion='Abono en Caja (RF-02)', monto=monto)
+    Abono.objects.create(folio=reserva.folio, descripcion='Abono en Caja', monto=monto)
     return JsonResponse({'status': 'ok', 'message': 'Abono registrado con éxito.'})
 
 @login_required
@@ -930,7 +930,7 @@ def cambiar_estado_aseo(request, numero):
             return JsonResponse({'status': 'ok', 'message': f'Limpieza e insumos completados. Habitación {numero} marcada como DISPONIBLE.', 'estado': hab.estado})
 
         elif accion == 'reportar_desperfecto':
-            falla = data.get('falla', 'Desperfecto detectado por personal de aseo (CU-03)')
+            falla = data.get('falla', 'Desperfecto detectado por personal de aseo')
             hab.estado = 'Mantenimiento'
             hab.ticket_falla = falla
             hab.save()
@@ -946,7 +946,7 @@ def cambiar_estado_aseo(request, numero):
                 tarea.observaciones = f"Aseo suspendido por desperfecto: {falla}"
                 tarea.save()
 
-            return JsonResponse({'status': 'ok', 'message': f'Desperfecto reportado. Habitación {numero} bloqueada y transferida a Mantenimiento (CU-04).', 'estado': hab.estado})
+            return JsonResponse({'status': 'ok', 'message': f'Desperfecto reportado. Habitación {numero} bloqueada y transferida a Mantenimiento.', 'estado': hab.estado})
 
     return JsonResponse({'status': 'error', 'message': 'Acción no válida.'}, status=400)
 
