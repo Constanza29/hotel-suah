@@ -1,19 +1,27 @@
-# 💳 Tarjetas Oficiales de Transbank Developers para Pruebas (Webpay Plus)
+# 💳 Tarjetas Oficiales de Transbank Developers para Demostración
 
-El sistema está conectado a la pasarela oficial de **Transbank Developers** (`webpay3gint.transbank.cl`).
-
----
-
-### 1. Tarjeta APROBADA (Pago Exitoso) ✅
-* **Número de Tarjeta:** `4051 8856 0044 6623`
-* **Fecha de Expiración:** Cualquier fecha futura (ej: `12/28` o `10/30`)
-* **CVV:** `123`
-* **Comportamiento:** Transbank aprueba el pago, genera el código de autorización, abona el dinero al Folio de la habitación en SUAH y muestra el comprobante verde.
+Para tu defensa con el profesor, puedes demostrar los tres escenarios reales de pago:
 
 ---
 
-### 2. Tarjeta RECHAZADA (Prueba de Fallo) ❌
-* **Número de Tarjeta:** `5186 0595 5959 0568`
-* **Fecha de Expiración:** Cualquier fecha futura
+### 1. 🟢 Tarjeta de CRÉDITO Aprobada (VISA)
+* **Número:** `4051 8856 0044 6623`
+* **Vencimiento:** `12/28` (o cualquier fecha futura)
 * **CVV:** `123`
-* **Comportamiento:** Transbank rechaza la transacción y el sistema muestra el comprobante rojo sin descontar dinero.
+* **Resultado:** Pago aprobado inmediatamente. Genera código de autorización y voucher verde.
+
+---
+
+### 2. 🔵 Tarjeta de DÉBITO Aprobada (Redcompra)
+* **Número:** `4051 8842 3993 7763`
+* **Vencimiento:** `12/28`
+* **CVV:** `123`
+* **Resultado:** Simula el flujo bancario de Redcompra y confirma el abono en el folio.
+
+---
+
+### 3. 🔴 Tarjeta de Pago RECHAZADO (Prueba de Error)
+* **Número:** `5186 0595 5959 0568`
+* **Vencimiento:** `12/28`
+* **CVV:** `123`
+* **Resultado:** Transbank rechaza la transacción y el sistema muestra el comprobante rojo de *"Transacción Rechazada"* sin alterar los saldos del folio.
