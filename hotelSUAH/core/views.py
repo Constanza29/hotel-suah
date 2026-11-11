@@ -15,6 +15,7 @@ from operaciones.models import TareaLimpieza, OrdenMantenimiento
 from core.security_validators import validar_politica_contrasena_chile
 from core.rut_and_email_validators import validar_documento_identidad, validar_correo_real, validar_telefono_chileno
 from core.mfa_service import generar_datos_mfa, validar_codigo_mfa
+from core.webpay_service import iniciar_pago_webpay, confirmar_pago_webpay
 
 # ========================================================
 # FUNCIONES AUXILIARES DE CONTROL DE ACCESO (RBAC)
@@ -285,15 +286,107 @@ def huesped_abono_online(request):
     if not reserva or not hasattr(reserva, 'folio'):
         return JsonResponse({'status': 'error', 'message': 'No tienes una reserva activa con folio abierto.'}, status=400)
 
-    data = json.loads(request.body)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Datos inválidos.'}, status=400)
+
     monto = int(data.get('monto', 0))
     if monto <= 0:
         return JsonResponse({'status': 'error', 'message': 'Monto de pago inválido.'}, status=400)
 
-    with transaction.atomic():
-        Abono.objects.create(folio=reserva.folio, descripcion='Pago Online WebPay (Transbank)', monto=monto, metodo_pago='WebPay Plus')
+    ts = int(timezone.now().timestamp()) % 100000
+    buy_order = f"SUAH-{reserva.folio.id}-{ts}"
+    session_id = f"SESS-{request.user.id}-{ts}"
+    return_url = request.build_absolute_uri('/webpay/retorno/')
 
-    return JsonResponse({'status': 'ok', 'message': f'¡Pago de ${monto:,} CLP procesado exitosamente vía WebPay!'})
+    try:
+        wp_res = iniciar_pago_webpay(buy_order, session_id, monto, return_url)
+        # Guardar datos en sesión para verificar tras el retorno
+        request.session['webpay_pending'] = {
+            'folio_id': reserva.folio.id,
+            'monto': monto,
+            'buy_order': buy_order,
+            'token': wp_res['token']
+        }
+        return JsonResponse({
+            'status': 'ok',
+            'action': 'redirect_webpay',
+            'url': wp_res['url'],
+            'token_ws': wp_res['token']
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Error al conectar con Transbank Webpay Developers: {str(e)}'}, status=500)
+
+def webpay_retorno_view(request):
+    token_ws = request.POST.get('token_ws') or request.GET.get('token_ws')
+    tbk_token = request.POST.get('TBK_TOKEN') or request.GET.get('TBK_TOKEN')
+
+    # Transacción anulada por el usuario en Transbank
+    if tbk_token and not token_ws:
+        return render(request, 'publico/webpay_resultado.html', {
+            'exito': False,
+            'buy_order': request.POST.get('TBK_ORDEN_COMPRA', 'N/A'),
+            'monto': 0,
+            'mensaje_error': 'La transacción fue anulada por el usuario en el portal de Transbank.'
+        })
+
+    if not token_ws:
+        return render(request, 'publico/webpay_resultado.html', {
+            'exito': False,
+            'monto': 0,
+            'mensaje_error': 'No se recibió el token de confirmación de Transbank.'
+        })
+
+    try:
+        commit_res = confirmar_pago_webpay(token_ws)
+        status = commit_res.get('status')
+        response_code = commit_res.get('response_code')
+        amount = commit_res.get('amount', 0)
+        buy_order = commit_res.get('buy_order', 'N/A')
+        auth_code = commit_res.get('authorization_code', 'N/A')
+        card_detail = commit_res.get('card_detail', {})
+        last_digits = card_detail.get('card_number', '****')
+
+        # status == 'AUTHORIZED' y response_code == 0 indica pago aprobado
+        if status == 'AUTHORIZED' and response_code == 0:
+            pending = request.session.get('webpay_pending', {})
+            folio_id = pending.get('folio_id')
+            if folio_id:
+                folio = Folio.objects.filter(id=folio_id).first()
+                if folio:
+                    with transaction.atomic():
+                        Abono.objects.create(
+                            folio=folio,
+                            descripcion=f'Pago Online Transbank Webpay Plus (Aut: {auth_code})',
+                            monto=amount,
+                            metodo_pago='Webpay Plus Developers'
+                        )
+            if 'webpay_pending' in request.session:
+                del request.session['webpay_pending']
+
+            return render(request, 'publico/webpay_resultado.html', {
+                'exito': True,
+                'monto': f"{int(amount):,}",
+                'buy_order': buy_order,
+                'auth_code': auth_code,
+                'last_digits': last_digits,
+                'payment_type': 'Tarjeta Débito / Crédito (Webpay Plus)',
+                'fecha': timezone.now().strftime('%d-%m-%Y %H:%M:%S')
+            })
+        else:
+            return render(request, 'publico/webpay_resultado.html', {
+                'exito': False,
+                'monto': f"{int(amount):,}",
+                'buy_order': buy_order,
+                'mensaje_error': f'Transbank rechazó el pago (Código: {response_code}). Verifique los datos de la tarjeta de prueba.'
+            })
+    except Exception as e:
+        return render(request, 'publico/webpay_resultado.html', {
+            'exito': False,
+            'monto': 0,
+            'mensaje_error': f'Error de comunicación con Transbank: {str(e)}'
+        })
 
 # ========================================================
 # AUTENTICACIÓN ADMIN / STAFF (RNF-04)

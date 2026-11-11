@@ -600,9 +600,10 @@
             <input type="number" id="txt-webpay-monto" min="1000" class="form-control fw-bold text-success fs-5">
           </div>
         </div>
-        <div class="card bg-light border-0 p-3 small text-muted">
-          <p class="mb-1">✔️ Cifrado SSL/TLS de 256 bits.</p>
-          <p class="mb-0">✔️ Acepta tarjetas de crédito, débito Redcompra y prepago.</p>
+        <div class="card bg-light border-0 p-3 small text-muted mb-3">
+          <p class="mb-1 fw-bold text-dark">💳 Entorno Oficial Transbank Developers:</p>
+          <p class="mb-1">Serás redirigido al portal seguro de Webpay Plus para ingresar los datos de tu tarjeta de prueba.</p>
+          <p class="mb-0 small text-primary"><i class="bi bi-info-circle me-1"></i> Tarjeta Crédito Demo: <strong>6623 0000 0000 0001</strong> (Cualquier fecha / CVV)</p>
         </div>
       </div>
       <div class="modal-footer border-0">
@@ -954,6 +955,12 @@
     const monto = document.getElementById('txt-webpay-monto').value;
     if(!monto || monto <= 0) return showToast('Ingresa un monto válido', 'warning');
 
+    const btnPagar = event ? event.target : document.querySelector('#modalAbonoWebpay .btn-success');
+    if (btnPagar) {
+      btnPagar.disabled = true;
+      btnPagar.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Conectando con Transbank...';
+    }
+
     fetch('/api/huesped/abono-online/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
@@ -961,13 +968,33 @@
     })
     .then(res => res.json())
     .then(data => {
-      if(data.status === 'ok') {
-        showToast(data.message, 'success');
-        bsModalWebpay.hide();
-        setTimeout(() => window.location.reload(), 1000);
+      if(data.status === 'ok' && data.action === 'redirect_webpay') {
+        showToast('Redirigiendo a Webpay Developers...', 'info');
+        // Crear formulario POST dinámico hacia Transbank
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = data.url;
+        const inputToken = document.createElement('input');
+        inputToken.type = 'hidden';
+        inputToken.name = 'token_ws';
+        inputToken.value = data.token_ws;
+        form.appendChild(inputToken);
+        document.body.appendChild(form);
+        form.submit();
       } else {
-        showToast(data.message, 'error');
+        if(btnPagar) {
+          btnPagar.disabled = false;
+          btnPagar.innerHTML = 'Pagar Ahora';
+        }
+        showToast(data.message || 'Error al iniciar pago', 'error');
       }
+    })
+    .catch(() => {
+      if(btnPagar) {
+        btnPagar.disabled = false;
+        btnPagar.innerHTML = 'Pagar Ahora';
+      }
+      showToast('Error de comunicación con el servidor', 'error');
     });
   }
 

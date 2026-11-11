@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Comprobante WebPay Plus - Hotel SUAH{% endblock %}
+
+{% block content %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center bg-light py-5">
+  <div class="container" style="max-width: 580px;">
+    
+    <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+      
+      {% if exito %}
+      <div class="card-header bg-success text-white py-4 text-center">
+        <i class="bi bi-check-circle-fill display-4 mb-2 d-block"></i>
+        <h3 class="fw-bold mb-1">¡Pago Aprobado con Éxito!</h3>
+        <p class="mb-0 small text-white-50">Transacción procesada vía Transbank WebPay Plus</p>
+      </div>
+      {% else %}
+      <div class="card-header bg-danger text-white py-4 text-center">
+        <i class="bi bi-x-circle-fill display-4 mb-2 d-block"></i>
+        <h3 class="fw-bold mb-1">Transacción Rechazada o Anulada</h3>
+        <p class="mb-0 small text-white-50">La pasarela de pago no pudo completar el cobro</p>
+      </div>
+      {% endif %}
+
+      <div class="card-body p-4 bg-white">
+        
+        <div class="text-center mb-4">
+          <span class="text-muted small text-uppercase fw-bold">Monto Transacción</span>
+          <h2 class="fw-bold text-dark mb-0">${{ monto|default:0 }} CLP</h2>
+        </div>
+
+        <div class="bg-light p-3 rounded-3 mb-4">
+          <ul class="list-unstyled small mb-0 space-y-2">
+            <li class="d-flex justify-content-between py-1 border-bottom">
+              <span class="text-muted">Orden de Compra:</span>
+              <strong class="text-dark font-monospace">{{ buy_order }}</strong>
+            </li>
+            <li class="d-flex justify-content-between py-1 border-bottom">
+              <span class="text-muted">Código de Autorización:</span>
+              <strong class="text-dark font-monospace">{{ auth_code|default:"N/A" }}</strong>
+            </li>
+            <li class="d-flex justify-content-between py-1 border-bottom">
+              <span class="text-muted">Tipo de Pago:</span>
+              <span class="text-dark">{{ payment_type|default:"Crédito / Débito" }}</span>
+            </li>
+            <li class="d-flex justify-content-between py-1 border-bottom">
+              <span class="text-muted">Últimos 4 dígitos tarjeta:</span>
+              <span class="text-dark font-monospace">**** **** **** {{ last_digits|default:"6623" }}</span>
+            </li>
+            <li class="d-flex justify-content-between py-1">
+              <span class="text-muted">Fecha y Hora:</span>
+              <span class="text-dark">{{ fecha|default:"Ahora" }}</span>
+            </li>
+          </ul>
+        </div>
+
+        {% if exito %}
+        <div class="alert alert-success py-2 px-3 small text-center mb-4">
+          <i class="bi bi-shield-check me-1"></i> El abono ya se encuentra reflejado en tu folio de habitación.
+        </div>
+        {% else %}
+        <div class="alert alert-danger py-2 px-3 small text-center mb-4">
+          <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ mensaje_error|default:"No se realizaron cargos a su tarjeta." }}
+        </div>
+        {% endif %}
+
+        <div class="d-grid gap-2">
+          <a href="{% url 'index' %}" class="btn btn-warning fw-bold text-dark py-2.5 shadow-sm">
+            <i class="bi bi-house-door-fill me-1"></i> Volver al Portal del Hotel
+          </a>
+        </div>
+
+      </div>
+
+      <div class="card-footer bg-light border-0 py-3 text-center">
+        <small class="text-muted" style="font-size: 0.75rem;">
+          🔒 Certificado de Seguridad Transbank Developers - Integración Oficial Webpay Plus
+        </small>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}

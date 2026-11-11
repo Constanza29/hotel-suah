@@ -15,6 +15,7 @@ urlpatterns = [
     # Autoservicio Huésped (Servicios extras y abonos online)
     path('api/huesped/solicitar-servicio/', views.huesped_solicitar_servicio, name='huesped_solicitar_servicio'),
     path('api/huesped/abono-online/', views.huesped_abono_online, name='huesped_abono_online'),
+    path('webpay/retorno/', views.webpay_retorno_view, name='webpay_retorno'),
 
     # Auth Empleados / Admin
     path('login-admin/', views.login_admin_view, name='login_admin'),

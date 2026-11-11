@@ -12,4 +12,5 @@ PyOTP==2.10.0
 python-dotenv==1.2.4
 qrcode==8.2
 sqlparse==0.6.0
+transbank-sdk==6.1.0
 tzdata==2026.6
