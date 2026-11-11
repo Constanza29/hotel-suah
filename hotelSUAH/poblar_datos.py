@@ -19,29 +19,40 @@ for r in roles:
     g, _ = Group.objects.get_or_create(name=r)
     grupos[r] = g
 
-# 2. Crear Usuarios Empleados Demo (igual que en el prototipo)
+# 2. Crear Usuarios Empleados Demo (Institucionales @suah.cl)
 # Superuser admin
-if not User.objects.filter(username='admin').exists():
-    admin = User.objects.create_superuser('admin', 'admin@hotel.cl', 'admin123')
-    print("Admin creado: admin / admin123")
+if not User.objects.filter(username='admin@suah.cl').exists():
+    admin = User.objects.create_superuser('admin@suah.cl', 'admin@suah.cl', 'admin123', first_name='Administrador General')
+    print("Admin creado: admin@suah.cl / admin123")
 
 # Recepcionista
-if not User.objects.filter(username='rep@hotel.cl').exists():
-    u_rep = User.objects.create_user('rep@hotel.cl', 'rep@hotel.cl', '1234', first_name='Recepcionista')
+if not User.objects.filter(username='rep@suah.cl').exists():
+    u_rep = User.objects.create_user('rep@suah.cl', 'rep@suah.cl', '1234', first_name='Recepcionista')
     u_rep.groups.add(grupos['recepcion'])
-    print("Recepcionista creado: rep@hotel.cl / 1234")
+    print("Recepcionista creado: rep@suah.cl / 1234")
 
 # Housekeeping
-if not User.objects.filter(username='aseo@hotel.cl').exists():
-    u_aseo = User.objects.create_user('aseo@hotel.cl', 'aseo@hotel.cl', '1234', first_name='Camarera Limpieza')
+if not User.objects.filter(username='aseo@suah.cl').exists():
+    u_aseo = User.objects.create_user('aseo@suah.cl', 'aseo@suah.cl', '1234', first_name='Camarera Limpieza')
     u_aseo.groups.add(grupos['housekeeping'])
-    print("Aseo creado: aseo@hotel.cl / 1234")
+    print("Aseo creado: aseo@suah.cl / 1234")
 
 # Mantenimiento
-if not User.objects.filter(username='mant@hotel.cl').exists():
-    u_mant = User.objects.create_user('mant@hotel.cl', 'mant@hotel.cl', '1234', first_name='Técnico Mantención')
+if not User.objects.filter(username='mant@suah.cl').exists():
+    u_mant = User.objects.create_user('mant@suah.cl', 'mant@suah.cl', '1234', first_name='Técnico Mantención')
     u_mant.groups.add(grupos['mantenimiento'])
-    print("Mantenimiento creado: mant@hotel.cl / 1234")
+    print("Mantenimiento creado: mant@suah.cl / 1234")
+
+# Cliente demo para pruebas públicas
+if not User.objects.filter(username='cliente@suah.cl').exists():
+    u_cli = User.objects.create_user('cliente@suah.cl', 'cliente@suah.cl', 'Cliente123!', first_name='Constanza Cortés')
+    u_cli.groups.add(grupos['cliente'])
+    Cliente.objects.get_or_create(
+        user=u_cli,
+        email='cliente@suah.cl',
+        defaults={'nombre_completo': 'Constanza Cortés', 'telefono': '+56 9 8765 4321', 'rut': '12.345.678-5'}
+    )
+    print("Cliente demo creado: cliente@suah.cl / Cliente123!")
 
 # 3. Crear Tipos de Habitación
 tipo_estandar, _ = TipoHabitacion.objects.get_or_create(
