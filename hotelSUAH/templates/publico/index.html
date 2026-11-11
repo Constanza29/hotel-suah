@@ -60,8 +60,14 @@
         <small class="text-white-50 d-block">Saldo en Folio</small>
         <strong class="text-warning h6 mb-0">${{ folio_huesped.saldo_pendiente|default:0 }} CLP</strong>
       </div>
-      <button onclick="abrirModalPedirServicio()" class="btn btn-primary btn-sm fw-bold">
-        <i class="bi bi-bell-fill me-1"></i> Pedir Servicio Extra
+      <button onclick="abrirModalPedirServicio('consumo')" class="btn btn-primary btn-sm fw-bold">
+        <i class="bi bi-bell-fill me-1"></i> Pedir Consumo Extra
+      </button>
+      <button onclick="abrirModalPedirServicio('aseo')" class="btn btn-warning text-dark btn-sm fw-bold">
+        <i class="bi bi-brush-fill me-1"></i> Solicitar Insumos / Aseo
+      </button>
+      <button onclick="abrirModalPedirServicio('mantenimiento')" class="btn btn-outline-danger btn-sm fw-bold text-white">
+        <i class="bi bi-cone-striped me-1"></i> Reportar Falla Técnica
       </button>
       {% if folio_huesped.saldo_pendiente > 0 %}
       <button onclick="abrirModalAbonoOnline({{ folio_huesped.saldo_pendiente }})" class="btn btn-success btn-sm fw-bold">
@@ -548,34 +554,101 @@
   </div>
 </div>
 
-<!-- Modal Huésped: Pedir Servicio Extra -->
+<!-- Modal Huésped: Pedir Servicio, Aseo o Mantenimiento -->
 <div class="modal fade" id="modalPedirServicio" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4 border-0 shadow-lg">
       <div class="modal-header bg-light border-0 py-3">
-        <h5 class="modal-title fw-bold text-dark">Solicitar Servicio a la Habitación</h5>
+        <div>
+          <h5 class="modal-title fw-bold text-dark" id="lbl-modal-servicio-titulo">Solicitud de Estadía</h5>
+          <small class="text-muted">Habitación {{ reserva_activa.habitacion.numero }} | Autoservicio Huésped</small>
+        </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <p class="text-muted small mb-3">El cargo se reflejará en tu folio y se confirmará de inmediato.</p>
-        <div class="mb-3">
-          <label class="form-label small fw-bold">Servicio</label>
-          <select id="sel-huesped-servicio" onchange="actualizarPrecioServicioHuesped()" class="form-select">
-            <option value="Room Service: Cena Gourmet">Room Service: Cena Gourmet ($25.000)</option>
-            <option value="Room Service: Desayuno Buffet Americano">Room Service: Desayuno Buffet ($15.000)</option>
-            <option value="Pack Minibar Premium">Pack Minibar Premium ($12.000)</option>
-            <option value="Sesión de Masaje y Spa 50min">Sesión de Masaje y Spa ($45.000)</option>
-            <option value="Servicio de Lavandería Express">Lavandería Express ($18.000)</option>
-          </select>
+        
+        <!-- Pestañas de Selección de Tipo de Solicitud -->
+        <ul class="nav nav-pills nav-fill mb-3 bg-light p-1 rounded-3 small fw-bold" id="pills-huesped-tab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active py-2" id="tab-sol-consumo" onclick="cambiarTabSolicitudHuesped('consumo')">
+              <i class="bi bi-cup-hot-fill me-1"></i> Consumo Extra
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link py-2" id="tab-sol-aseo" onclick="cambiarTabSolicitudHuesped('aseo')">
+              <i class="bi bi-brush-fill me-1"></i> Insumos / Aseo
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link py-2" id="tab-sol-mant" onclick="cambiarTabSolicitudHuesped('mantenimiento')">
+              <i class="bi bi-tools me-1"></i> Falla Técnica
+            </button>
+          </li>
+        </ul>
+
+        <!-- SECCIÓN 1: Consumo / Room Service -->
+        <div id="sec-huesped-consumo">
+          <p class="text-muted small mb-3">El cargo por servicio se sumará a tu folio y lo liquidas al check-out o con WebPay.</p>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Servicio Gastronómico / Spa</label>
+            <select id="sel-huesped-servicio" onchange="actualizarPrecioServicioHuesped()" class="form-select">
+              <option value="Room Service: Cena Gourmet">Room Service: Cena Gourmet ($25.000)</option>
+              <option value="Room Service: Desayuno Buffet Americano">Room Service: Desayuno Buffet ($15.000)</option>
+              <option value="Pack Minibar Premium">Pack Minibar Premium ($12.000)</option>
+              <option value="Sesión de Masaje y Spa 50min">Sesión de Masaje y Spa ($45.000)</option>
+              <option value="Servicio de Lavandería Express">Lavandería Express ($18.000)</option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-bold">Costo del Servicio</label>
+            <input type="text" id="txt-huesped-monto-display" value="$25.000 CLP" readonly class="form-control fw-bold bg-light">
+          </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label small fw-bold">Costo</label>
-          <input type="text" id="txt-huesped-monto-display" value="$25.000 CLP" readonly class="form-control fw-bold bg-light">
+
+        <!-- SECCIÓN 2: Insumos / Aseo durante la estadía -->
+        <div id="sec-huesped-aseo" class="d-none">
+          <div class="alert alert-info py-2 small mb-3">
+            <i class="bi bi-info-circle-fill me-1"></i> <strong>Sin costo adicional:</strong> Nuestro equipo de Housekeeping te llevará los insumos solicitados directamente a la habitación.
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">¿Qué necesitas para tu habitación?</label>
+            <select id="sel-huesped-insumo" class="form-select mb-2" onchange="seleccionarInsumoRapido()">
+              <option value="Juego de toallas limpias">Juego de toallas limpias (cuerpo y mano)</option>
+              <option value="Reposición de papel higiénico y pañuelos">Reposición de papel higiénico y pañuelos</option>
+              <option value="Kit de amenities (jabón, shampoo, acondicionador)">Kit de amenities (jabón, shampoo, acondicionador)</option>
+              <option value="Cambio de sábanas y tendido de cama">Cambio de sábanas y tendido de cama</option>
+              <option value="Limpieza y aspirado general de la habitación">Limpieza y aspirado general de la habitación</option>
+              <option value="otro">Otro requerimiento específico...</option>
+            </select>
+            <textarea id="txt-huesped-detalle-aseo" class="form-control form-control-sm" rows="2" placeholder="Detalle adicional (ej: 2 toallas extras, por favor)"></textarea>
+          </div>
         </div>
+
+        <!-- SECCIÓN 3: Falla Técnica / Mantenimiento -->
+        <div id="sec-huesped-mant" class="d-none">
+          <div class="alert alert-warning py-2 small mb-3">
+            <i class="bi bi-cone-striped me-1"></i> <strong>Soporte en Habitación:</strong> Reporta cualquier desperfecto para que nuestro equipo técnico acuda a solucionarlo sin interrumpir tu estadía.
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Tipo de Desperfecto</label>
+            <select id="sel-huesped-falla" class="form-select mb-2" onchange="seleccionarFallaRapida()">
+              <option value="Problema con Aire Acondicionado / Calefacción">Aire Acondicionado / Calefacción</option>
+              <option value="Ducha / Agua caliente / Presión de agua">Ducha / Agua caliente / Presión de agua</option>
+              <option value="Televisión / Control remoto / Canales">Televisión / Control remoto / Cable</option>
+              <option value="Falla de iluminación / Enchufes eléctricos">Iluminación / Enchufes eléctricos</option>
+              <option value="Caja fuerte / Cerradura electrónica">Caja fuerte / Cerradura electrónica</option>
+              <option value="otro">Otro problema técnico...</option>
+            </select>
+            <textarea id="txt-huesped-detalle-falla" class="form-control form-control-sm" rows="2" placeholder="Describe brevemente el problema para el técnico"></textarea>
+          </div>
+        </div>
+
       </div>
       <div class="modal-footer border-0">
         <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" onclick="enviarSolicitudServicioHuesped()" class="btn btn-warning fw-bold text-dark shadow-sm">Confirmar Pedido</button>
+        <button type="button" onclick="enviarSolicitudServicioHuesped()" class="btn btn-warning fw-bold text-dark shadow-sm" id="btn-confirmar-solicitud-huesped">
+          Confirmar Solicitud
+        </button>
       </div>
     </div>
   </div>
@@ -916,9 +989,62 @@
   }
 
   // --- AUTOSERVICIO DEL HUÉSPED ---
-  function abrirModalPedirServicio() {
+  let tipoSolicitudActivaHuesped = 'consumo';
+
+  function cambiarTabSolicitudHuesped(tipo) {
+    tipoSolicitudActivaHuesped = tipo;
+    ['consumo', 'aseo', 'mant'].forEach(t => {
+      const btn = document.getElementById(`tab-sol-${t}`);
+      const sec = document.getElementById(`sec-huesped-${t}`);
+      if (btn) btn.classList.remove('active', 'bg-warning', 'text-dark', 'bg-primary', 'bg-danger');
+      if (sec) sec.classList.add('d-none');
+    });
+
+    const btnActivo = document.getElementById(`tab-sol-${tipo === 'mantenimiento' ? 'mant' : tipo}`);
+    const secActiva = document.getElementById(`sec-huesped-${tipo === 'mantenimiento' ? 'mant' : tipo}`);
+    const btnConfirm = document.getElementById('btn-confirmar-solicitud-huesped');
+
+    if (btnActivo) btnActivo.classList.add('active');
+    if (secActiva) secActiva.classList.remove('d-none');
+
+    if (tipo === 'consumo') {
+      btnConfirm.className = 'btn btn-primary fw-bold shadow-sm';
+      btnConfirm.innerHTML = '<i class="bi bi-cart-check me-1"></i> Pedir Consumo Extra';
+    } else if (tipo === 'aseo') {
+      btnConfirm.className = 'btn btn-warning fw-bold text-dark shadow-sm';
+      btnConfirm.innerHTML = '<i class="bi bi-brush me-1"></i> Solicitar Insumos a Housekeeping';
+    } else {
+      btnConfirm.className = 'btn btn-danger fw-bold shadow-sm';
+      btnConfirm.innerHTML = '<i class="bi bi-cone-striped me-1"></i> Enviar Reporte a Mantenimiento';
+    }
+  }
+
+  function abrirModalPedirServicio(tipoInicial = 'consumo') {
+    cambiarTabSolicitudHuesped(tipoInicial);
     actualizarPrecioServicioHuesped();
     bsModalServicio.show();
+  }
+
+  function seleccionarInsumoRapido() {
+    const sel = document.getElementById('sel-huesped-insumo');
+    const txt = document.getElementById('txt-huesped-detalle-aseo');
+    if (sel.value === 'otro') {
+      txt.value = '';
+      txt.focus();
+    } else {
+      txt.value = sel.value;
+    }
+  }
+
+  function seleccionarFallaRapida() {
+    const sel = document.getElementById('sel-huesped-falla');
+    const txt = document.getElementById('txt-huesped-detalle-falla');
+    if (sel.value === 'otro') {
+      txt.value = '';
+      txt.focus();
+    } else {
+      txt.value = sel.value;
+    }
   }
 
   function actualizarPrecioServicioHuesped() {
@@ -931,34 +1057,61 @@
       'Servicio de Lavandería Express': 18000
     };
     const monto = precios[sel.value] || 15000;
-    document.getElementById('txt-huesped-monto-display').value = `$${monto.toLocaleString()} CLP`;
+    const txtDisplay = document.getElementById('txt-huesped-monto-display');
+    if (txtDisplay) txtDisplay.value = `$${monto.toLocaleString()} CLP`;
   }
 
   function enviarSolicitudServicioHuesped() {
-    const sel = document.getElementById('sel-huesped-servicio');
-    const precios = {
-      'Room Service: Cena Gourmet': 25000,
-      'Room Service: Desayuno Buffet Americano': 15000,
-      'Pack Minibar Premium': 12000,
-      'Sesión de Masaje y Spa 50min': 45000,
-      'Servicio de Lavandería Express': 18000
-    };
-    const monto = precios[sel.value] || 15000;
+    let payload = { tipo: tipoSolicitudActivaHuesped };
+
+    if (tipoSolicitudActivaHuesped === 'consumo') {
+      const sel = document.getElementById('sel-huesped-servicio');
+      const precios = {
+        'Room Service: Cena Gourmet': 25000,
+        'Room Service: Desayuno Buffet Americano': 15000,
+        'Pack Minibar Premium': 12000,
+        'Sesión de Masaje y Spa 50min': 45000,
+        'Servicio de Lavandería Express': 18000
+      };
+      payload.servicio = sel.value;
+      payload.monto = precios[sel.value] || 15000;
+    } else if (tipoSolicitudActivaHuesped === 'aseo') {
+      const txt = document.getElementById('txt-huesped-detalle-aseo');
+      const sel = document.getElementById('sel-huesped-insumo');
+      payload.detalle = txt.value.trim() || sel.value;
+      if (!payload.detalle) return showToast('Por favor describe los insumos o requerimiento de aseo.', 'warning');
+    } else {
+      const txt = document.getElementById('txt-huesped-detalle-falla');
+      const sel = document.getElementById('sel-huesped-falla');
+      payload.detalle = txt.value.trim() || sel.value;
+      if (!payload.detalle) return showToast('Por favor describe la falla técnica encontrada.', 'warning');
+    }
+
+    const btnConfirm = document.getElementById('btn-confirmar-solicitud-huesped');
+    if (btnConfirm) {
+      btnConfirm.disabled = true;
+      btnConfirm.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
+    }
 
     fetch('/api/huesped/solicitar-servicio/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
-      body: JSON.stringify({ servicio: sel.value, monto: monto })
+      body: JSON.stringify(payload)
     })
     .then(res => res.json())
     .then(data => {
+      if (btnConfirm) btnConfirm.disabled = false;
       if(data.status === 'ok') {
         showToast(data.message, 'success');
         bsModalServicio.hide();
-        setTimeout(() => window.location.reload(), 1000);
+        setTimeout(() => window.location.reload(), 2000);
       } else {
-        showToast(data.message, 'error');
+        showToast(data.message || 'Error al procesar solicitud', 'error');
       }
+    })
+    .catch(() => {
+      if (btnConfirm) btnConfirm.disabled = false;
+      showToast('Error de comunicación con el servidor', 'error');
     });
   }
 

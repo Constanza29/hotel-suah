@@ -159,7 +159,9 @@
       <span class="badge bg-warning text-dark px-3 py-2 fw-bold" id="hk-counter">0 Pendientes</span>
     </div>
 
-    <div class="table-responsive">
+    <!-- Tabla de Limpieza Habitaciones Desocupadas (Check-out) -->
+    <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-door-closed me-1"></i>Habitaciones Desocupadas para Sanitización:</h6>
+    <div class="table-responsive mb-4">
       <table class="table table-hover align-middle mb-0">
         <thead class="table-light">
           <tr>
@@ -171,6 +173,41 @@
         </thead>
         <tbody id="hk-table-body" class="small"></tbody>
       </table>
+    </div>
+
+    <!-- Sección de Solicitudes de Insumos y Aseo de Huéspedes en Estadía -->
+    <div class="border-top pt-3">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="fw-bold text-dark mb-0">
+          <i class="bi bi-bell-fill text-warning me-1"></i>Solicitudes de Insumos & Aseo en Habitaciones Ocupadas:
+        </h6>
+        <span class="badge bg-primary rounded-pill px-3 py-1">{{ solicitudes_aseo_ocupadas|length }} Solicitudes</span>
+      </div>
+
+      {% if solicitudes_aseo_ocupadas %}
+      <div class="row g-2">
+        {% for sol in solicitudes_aseo_ocupadas %}
+        <div class="col-12 col-md-6">
+          <div class="card border-warning bg-warning bg-opacity-10 p-3 rounded-3 shadow-xs d-flex flex-row justify-content-between align-items-center">
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-warning text-dark fw-bold">Hab #{{ sol.habitacion.numero }}</span>
+                <span class="small text-muted">{{ sol.fecha_creacion|date:"H:i" }} hrs</span>
+              </div>
+              <div class="fw-semibold text-dark small">{{ sol.observaciones }}</div>
+            </div>
+            <button onclick="atenderSolicitudAseoHk({{ sol.id }})" class="btn btn-sm btn-success fw-bold ms-2 text-nowrap">
+              <i class="bi bi-check-lg me-1"></i>Entregado
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="alert alert-light border py-2 px-3 small text-muted mb-0">
+        <i class="bi bi-check2-circle text-success me-1"></i> No hay solicitudes pendientes de insumos o toallas por parte de huéspedes.
+      </div>
+      {% endif %}
     </div>
   </div>
   {% endif %}
@@ -185,7 +222,36 @@
       <span class="badge bg-danger px-3 py-2 fw-bold" id="mt-counter">0 Activos</span>
     </div>
 
-    <div class="row g-3" id="mt-ticket-list"></div>
+    <div class="row g-3" id="mt-ticket-list">
+      {% if tickets_mantenimiento %}
+        {% for t in tickets_mantenimiento %}
+        <div class="col-12 col-md-6">
+          <div class="card border-danger bg-danger bg-opacity-10 p-3 rounded-3 shadow-sm h-100 d-flex flex-row justify-content-between align-items-center">
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="fw-bold h6 mb-0 text-dark">Habitación {{ t.habitacion.numero }}</span>
+                {% if t.habitacion.estado == 'Ocupada' %}
+                <span class="badge bg-primary text-uppercase">Huésped Alojado</span>
+                {% else %}
+                <span class="badge bg-danger text-uppercase">Bloqueada</span>
+                {% endif %}
+              </div>
+              <small class="text-muted d-block">Piso {{ t.habitacion.piso }} - {{ t.habitacion.tipo.nombre }} | {{ t.fecha_reporte|date:"H:i" }} hrs</small>
+              <span class="small fw-semibold text-danger mt-1 d-block"><i class="bi bi-exclamation-triangle-fill me-1"></i>{{ t.descripcion_falla }}</span>
+            </div>
+            <button onclick="cerrarTicket('{{ t.habitacion.numero }}')" class="btn btn-dark btn-sm fw-bold ms-2 text-nowrap">
+              <i class="bi bi-check-circle me-1"></i>Reparada
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="col-12 text-center text-muted p-5 border rounded-3 bg-light">
+          <i class="bi bi-check2-all fs-2 text-success d-block mb-2"></i>
+          No hay tickets de fallas activas ni habitaciones con problemas técnicos.
+        </div>
+      {% endif %}
+    </div>
   </div>
   {% endif %}
 
@@ -807,6 +873,25 @@
               </div>
             `}
 
+            <!-- Acciones de Servicio Operativo en Habitación Ocupada -->
+            <div class="p-2 border rounded-3 bg-light mt-1">
+              <span class="small fw-bold text-muted d-block mb-2">
+                <i class="bi bi-headset me-1"></i>Atención Operativa de Huésped en Habitación Ocupada:
+              </span>
+              <div class="row g-2">
+                <div class="col-6">
+                  <button onclick="solicitarAseoOcupada('${data.numero}')" class="btn btn-outline-primary w-100 btn-sm fw-semibold">
+                    <i class="bi bi-brush-fill me-1"></i>Pedir Insumos / Aseo
+                  </button>
+                </div>
+                <div class="col-6">
+                  <button onclick="reportarFalla('${data.numero}')" class="btn btn-outline-danger w-100 btn-sm fw-semibold">
+                    <i class="bi bi-cone-striped me-1"></i>Reportar Falla Técnica
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <button onclick="generarComprobanteRF05('${data.numero}', ${f.balance})" class="btn ${f.balance === 0 ? 'btn-primary' : 'btn-secondary disabled'} py-2.5 fw-bold shadow-sm mt-1">
               <i class="bi bi-file-earmark-text me-1"></i> Proceder a Liquidación / Check-out
             </button>
@@ -1227,8 +1312,39 @@
     });
   }
 
+  function solicitarAseoOcupada(num) {
+    const detalle = prompt(`Solicitud a Housekeeping para Habitación ${num} (ej: Reponer toallas, papel higiénico, cambio de sábanas):`);
+    if (!detalle || !detalle.trim()) return;
+
+    fetch(`/api/recepcion/solicitar-aseo/${num}/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+      body: JSON.stringify({ detalle: detalle.trim() })
+    })
+    .then(res => res.json())
+    .then(data => {
+      showToast(data.message, 'success');
+      bsModalRoom.hide();
+      setTimeout(() => window.location.reload(), 2500);
+    })
+    .catch(() => showToast('Error al enviar solicitud a Housekeeping.', 'error'));
+  }
+
+  function atenderSolicitudAseoHk(tareaId) {
+    fetch(`/api/housekeeping/atender-solicitud/${tareaId}/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCsrfToken() }
+    })
+    .then(res => res.json())
+    .then(data => {
+      showToast(data.message, 'success');
+      setTimeout(() => window.location.reload(), 2500);
+    })
+    .catch(() => showToast('Error al actualizar solicitud.', 'error'));
+  }
+
   function reportarFalla(num) {
-    const desc = prompt("Describa la falla técnica de la habitación:");
+    const desc = prompt(`Describa la falla técnica de la habitación ${num}:`);
     if(!desc) return;
 
     fetch(`/api/reportar-falla/${num}/`, {
@@ -1239,7 +1355,7 @@
     .then(res => res.json())
     .then(data => {
       showToast(data.message, 'warning');
-      bsModalRoom.hide();
+      if (bsModalRoom) bsModalRoom.hide();
       setTimeout(() => window.location.reload(), 2500);
     });
   }

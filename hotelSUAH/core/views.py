@@ -266,14 +266,42 @@ def huesped_solicitar_servicio(request):
     if not reserva or not hasattr(reserva, 'folio'):
         return JsonResponse({'status': 'error', 'message': 'No tienes una estadía activa para cargar servicios.'}, status=400)
 
-    data = json.loads(request.body)
-    servicio = data.get('servicio', 'Servicio a la Habitación')
-    monto = int(data.get('monto', 15000))
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Datos inválidos.'}, status=400)
+
+    tipo_solicitud = data.get('tipo', 'consumo') # 'consumo', 'aseo', 'mantenimiento'
+    detalle = data.get('detalle', '').strip()
+    monto = int(data.get('monto', 0))
 
     with transaction.atomic():
-        Cargo.objects.create(folio=reserva.folio, descripcion=f"Solicitud Web: {servicio}", monto=monto)
+        if tipo_solicitud == 'aseo':
+            # Solicitud de insumos/limpieza a Housekeeping durante la estadía
+            tarea = TareaLimpieza.objects.create(
+                habitacion=reserva.habitacion,
+                estado='Pendiente',
+                observaciones=f"[Solicitud Huésped - Hab {reserva.habitacion.numero}] {detalle}"
+            )
+            return JsonResponse({'status': 'ok', 'message': f'Solicitud enviada a Housekeeping: "{detalle}". El personal acudirá a tu habitación a la brevedad.'})
 
-    return JsonResponse({'status': 'ok', 'message': f'¡{servicio} solicitado y cargado a tu folio de habitación!'})
+        elif tipo_solicitud == 'mantenimiento':
+            # Reporte de falla técnica en habitación ocupada
+            OrdenMantenimiento.objects.create(
+                habitacion=reserva.habitacion,
+                descripcion_falla=f"[Reporte Huésped - Hab {reserva.habitacion.numero}] {detalle}",
+                estado='Abierta',
+                reportado_por=request.user
+            )
+            return JsonResponse({'status': 'ok', 'message': f'Falla técnica reportada: "{detalle}". El equipo de Mantenimiento fue notificado.'})
+
+        else:
+            # Consumo con cargo al folio (Room Service, Spa, Minibar)
+            servicio = data.get('servicio', 'Servicio a la Habitación')
+            if monto <= 0:
+                monto = 15000
+            Cargo.objects.create(folio=reserva.folio, descripcion=f"Solicitud Web: {servicio}", monto=monto)
+            return JsonResponse({'status': 'ok', 'message': f'¡{servicio} solicitado y cargado a tu folio de habitación!'})
 
 @login_required
 @require_POST
@@ -429,6 +457,16 @@ def panel_operativo(request):
     mantenimiento = habitaciones.filter(estado='Mantenimiento').count()
     ocupacion_pct = int((ocupadas / total * 100)) if total > 0 else 0
 
+    # Solicitudes de Huéspedes en habitaciones ocupadas
+    solicitudes_aseo_ocupadas = TareaLimpieza.objects.filter(
+        habitacion__estado='Ocupada',
+        estado__in=['Pendiente', 'EnProceso']
+    ).select_related('habitacion').order_by('-id')
+
+    tickets_mantenimiento = OrdenMantenimiento.objects.filter(
+        estado__in=['Abierta', 'EnReparacion']
+    ).select_related('habitacion', 'reportado_por').order_by('-id')
+
     return render(request, 'admin/panel.html', {
         'rol': rol,
         'habitaciones': habitaciones,
@@ -439,11 +477,9 @@ def panel_operativo(request):
         'en_limpieza': en_limpieza,
         'mantenimiento': mantenimiento,
         'ocupacion_pct': ocupacion_pct,
+        'solicitudes_aseo_ocupadas': solicitudes_aseo_ocupadas,
+        'tickets_mantenimiento': tickets_mantenimiento,
     })
-
-# ========================================================
-# ENDPOINTS OPERATIVOS CON SEGURIDAD (RBAC)
-# ========================================================
 
 @login_required
 def get_room_folio(request, numero):
@@ -646,16 +682,63 @@ def finalizar_checkout(request, numero):
 @require_POST
 def reportar_falla(request, numero):
     hab = get_object_or_404(Habitación, numero=numero)
-    data = json.loads(request.body)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        data = {}
     desc = data.get('descripcion', 'Falla técnica no especificada')
+    mantener_ocupada = (hab.estado == 'Ocupada')
 
     with transaction.atomic():
-        hab.estado = 'Mantenimiento'
-        hab.ticket_falla = desc
-        hab.save()
-        OrdenMantenimiento.objects.create(habitacion=hab, descripcion_falla=desc, reportado_por=request.user)
+        if not mantener_ocupada:
+            hab.estado = 'Mantenimiento'
+            hab.ticket_falla = desc
+            hab.save()
 
-    return JsonResponse({'status': 'ok', 'message': 'Falla registrada y habitación bloqueada preventivamente.'})
+        prefijo = "[Habitación Ocupada] " if mantener_ocupada else ""
+        OrdenMantenimiento.objects.create(
+            habitacion=hab,
+            descripcion_falla=f"{prefijo}{desc}",
+            reportado_por=request.user
+        )
+
+    if mantener_ocupada:
+        return JsonResponse({'status': 'ok', 'message': f'Ticket de falla reportado a Mantenimiento para la Habitación {numero} (manteniendo huésped alojado).'})
+    return JsonResponse({'status': 'ok', 'message': f'Falla registrada y habitación {numero} bloqueada preventivamente.'})
+
+
+@login_required
+@require_POST
+def recepcion_solicitar_aseo_ocupada(request, numero):
+    hab = get_object_or_404(Habitación, numero=numero)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        data = {}
+    detalle = data.get('detalle', 'Insumos / Aseo solicitado en mostrador').strip()
+
+    with transaction.atomic():
+        TareaLimpieza.objects.create(
+            habitacion=hab,
+            estado='Pendiente',
+            observaciones=f"[Recepción - Hab {numero}] {detalle}"
+        )
+
+    return JsonResponse({'status': 'ok', 'message': f'Solicitud de aseo/insumos enviada a Housekeeping para la Habitación {numero}.'})
+
+
+@login_required
+@require_POST
+def atender_solicitud_aseo_ocupada(request, tarea_id):
+    if not es_housekeeping(request.user):
+        return HttpResponseForbidden("Acceso denegado: solo personal de Housekeeping.")
+
+    tarea = get_object_or_404(TareaLimpieza, id=tarea_id)
+    tarea.estado = 'Finalizada'
+    tarea.responsable = request.user
+    tarea.save()
+
+    return JsonResponse({'status': 'ok', 'message': f'Solicitud #{tarea_id} de insumos/aseo completada con éxito.'})
 
 @login_required
 @require_POST
@@ -734,11 +817,15 @@ def resolver_mantenimiento(request, numero):
 
     hab = get_object_or_404(Habitación, numero=numero)
     with transaction.atomic():
-        orden = OrdenMantenimiento.objects.filter(habitacion=hab, estado='Abierta').last()
+        orden = OrdenMantenimiento.objects.filter(habitacion=hab, estado__in=['Abierta', 'EnReparacion']).last()
         if orden:
             orden.estado = 'Resuelta'
             orden.fecha_resolucion = timezone.now()
             orden.save()
+
+        # Si la habitación estaba Ocupada por un huésped, se mantiene Ocupada
+        if hab.estado == 'Ocupada':
+            return JsonResponse({'status': 'ok', 'message': f'Falla resuelta con éxito en Habitación {numero} (el huésped continúa alojado).'})
 
         hab.estado = 'Sucia'
         hab.ticket_falla = None
@@ -746,7 +833,6 @@ def resolver_mantenimiento(request, numero):
         TareaLimpieza.objects.create(habitacion=hab, estado='Pendiente')
 
     return JsonResponse({'status': 'ok', 'message': 'Falla resuelta. Habitación derivada a Limpieza para sanitización.'})
-
 
 @require_POST
 def enviar_mensaje_contacto_api(request):
