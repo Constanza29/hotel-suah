@@ -27,14 +27,14 @@
       {% endif %}
 
       <!-- FORMULARIO DE ACCESO DIRECTO CON CREDENCIALES -->
-      <form method="POST" action="{% url 'login_admin' %}" novalidate>
+      <form method="POST" action="{% url 'login_admin' %}">
         {% csrf_token %}
 
         <div class="mb-3">
           <label class="form-label small fw-bold text-secondary">CORREO INSTITUCIONAL</label>
           <div class="input-group">
             <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-fill text-muted"></i></span>
-            <input type="text" name="email" required placeholder="ej: rep@suah.cl" class="form-control border-start-0">
+            <input type="email" name="email" required placeholder="ej: rep@suah.cl" class="form-control border-start-0">
           </div>
         </div>
 
