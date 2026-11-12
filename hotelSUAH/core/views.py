@@ -41,6 +41,20 @@ def obtener_rol_usuario(user):
         return 'mantenimiento'
     return 'cliente'
 
+def obtener_camarera_disponible():
+    staff_aseo = list(User.objects.filter(groups__name='housekeeping').order_by('id'))
+    if not staff_aseo:
+        return None
+    cargas = {u: TareaLimpieza.objects.filter(responsable=u, estado__in=['Pendiente', 'EnProceso']).count() for u in staff_aseo}
+    return min(cargas, key=cargas.get)
+
+def obtener_tecnico_disponible():
+    staff_mant = list(User.objects.filter(groups__name='mantenimiento').order_by('id'))
+    if not staff_mant:
+        return None
+    cargas = {u: OrdenMantenimiento.objects.filter(asignado_a=u, estado__in=['Abierta', 'EnReparacion']).count() for u in staff_mant}
+    return min(cargas, key=cargas.get)
+
 # ========================================================
 # VISTAS PÚBLICAS Y RESERVAS WEB
 # ========================================================
@@ -69,7 +83,10 @@ def sincronizar_reservas_y_habitaciones_automatico():
         if hab.estado == 'Ocupada':
             hab.estado = 'Sucia'
             hab.save()
-            TareaLimpieza.objects.get_or_create(habitacion=hab, estado='Pendiente')
+            t, created = TareaLimpieza.objects.get_or_create(habitacion=hab, estado='Pendiente')
+            if created or not t.responsable:
+                t.responsable = obtener_camarera_disponible()
+                t.save()
 
 def index(request):
     sincronizar_reservas_y_habitaciones_automatico()
@@ -601,9 +618,25 @@ def panel_operativo(request):
         estado='Resuelta'
     ).select_related('habitacion', 'reportado_por', 'asignado_a').order_by('-fecha_resolucion')[:40]
 
+    dict_tareas = {t.habitacion.numero: t for t in TareaLimpieza.objects.filter(estado__in=['Pendiente', 'EnProceso']).select_related('responsable')}
+    habitaciones_json_data = []
+    for h in habitaciones:
+        t = dict_tareas.get(h.numero)
+        habitaciones_json_data.append({
+            'id': h.numero,
+            'type': h.tipo.nombre,
+            'price': int(h.tipo.precio_base),
+            'status': h.estado,
+            'ticket': h.ticket_falla or None,
+            'tarea_id': t.id if t else None,
+            'responsable_id': t.responsable.id if (t and t.responsable) else None,
+            'responsable_nombre': (t.responsable.get_full_name() or t.responsable.username) if (t and t.responsable) else 'Sin Asignar',
+        })
+
     return render(request, 'admin/panel.html', {
         'rol': rol,
         'habitaciones': habitaciones,
+        'habitaciones_json': json.dumps(habitaciones_json_data),
         'total': total,
         'disponibles': disponibles,
         'ocupadas': ocupadas,
@@ -815,7 +848,7 @@ def finalizar_checkout(request, numero):
 
         hab.estado = 'Sucia'
         hab.save()
-        TareaLimpieza.objects.create(habitacion=hab, estado='Pendiente')
+        TareaLimpieza.objects.create(habitacion=hab, estado='Pendiente', responsable=obtener_camarera_disponible())
 
     return JsonResponse({'status': 'ok', 'message': 'Check-out listo. Habitación enviada a Housekeeping (SUCIA).'})
 
@@ -837,10 +870,12 @@ def reportar_falla(request, numero):
             hab.save()
 
         prefijo = "[Habitación Ocupada] " if mantener_ocupada else ""
+        tecnico_auto = obtener_tecnico_disponible()
         OrdenMantenimiento.objects.create(
             habitacion=hab,
             descripcion_falla=f"{prefijo}{desc}",
-            reportado_por=request.user
+            reportado_por=request.user,
+            asignado_a=tecnico_auto
         )
 
     if mantener_ocupada:
@@ -973,7 +1008,7 @@ def resolver_mantenimiento(request, numero):
         hab.estado = 'Sucia'
         hab.ticket_falla = None
         hab.save()
-        TareaLimpieza.objects.create(habitacion=hab, estado='Pendiente')
+        TareaLimpieza.objects.create(habitacion=hab, estado='Pendiente', responsable=obtener_camarera_disponible())
 
     return JsonResponse({'status': 'ok', 'message': 'Falla resuelta. Habitación derivada a Limpieza para sanitización.'})
 

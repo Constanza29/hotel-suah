@@ -255,6 +255,7 @@
             <th class="ps-3">Habitación</th>
             <th>Piso / Tipo</th>
             <th>Estado Actual</th>
+            <th>Camarera Asignada</th>
             <th class="text-end pe-3">Acción Operativa</th>
           </tr>
         </thead>
@@ -1192,15 +1193,10 @@
     if(activeView) activeView.classList.remove('d-none');
   }
 
-  let allRooms = [
-    {% for h in habitaciones %}
-    {
-      id: "{{ h.numero }}",
-      type: "{{ h.tipo.nombre }}",
-      price: {{ h.tipo.precio_base }},
-      status: "{{ h.estado }}",
-      ticket: {% if h.ticket_falla %}"{{ h.ticket_falla }}"{% else %}null{% endif %}
-    }{% if not forloop.last %},{% endif %}
+  let allRooms = {{ habitaciones_json|safe }};
+  const staffAseoList = [
+    {% for u in staff_aseo %}
+    { id: {{ u.id }}, nombre: "{{ u.get_full_name|default:u.username }}" }{% if not forloop.last %},{% endif %}
     {% endfor %}
   ];
 
@@ -1258,7 +1254,7 @@
       if (counter) counter.innerText = `${dirtyRooms.length} Pendientes`;
 
       if(dirtyRooms.length === 0) {
-        hkBody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-muted">Todas las habitaciones están limpias y listas.</td></tr>`;
+        hkBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-muted">Todas las habitaciones están limpias y listas.</td></tr>`;
       } else {
         dirtyRooms.forEach(r => {
           let btn = '';
@@ -1268,11 +1264,28 @@
             btn = `<button onclick="abrirChecklistAseo('${r.id}')" class="btn btn-warning btn-sm fw-bold text-dark shadow-sm"><i class="bi bi-clipboard-check me-1"></i>Checklist de Insumos</button>`;
           }
           const c = colors[r.status];
+          let selectOptions = staffAseoList.map(s => `<option value="${s.id}" ${r.responsable_id === s.id ? 'selected' : ''}>${s.nombre}</option>`).join('');
+          let asignacionHtml = '';
+          if (r.tarea_id) {
+            asignacionHtml = `
+              <div class="d-flex align-items-center gap-1">
+                <span class="badge bg-light text-dark border"><i class="bi bi-person-fill text-primary me-1"></i>${r.responsable_nombre}</span>
+                <select onchange="asignarTareaAseoAjax(${r.tarea_id}, this.value)" class="form-select form-select-sm py-0 px-1 border-secondary-subtle" style="font-size: 0.75rem; width: 140px;">
+                  <option value="">-- Sin asignar --</option>
+                  ${selectOptions}
+                </select>
+              </div>
+            `;
+          } else {
+            asignacionHtml = `<span class="badge bg-light text-dark border"><i class="bi bi-person-fill text-primary me-1"></i>${r.responsable_nombre}</span>`;
+          }
+
           hkBody.innerHTML += `
             <tr>
               <td class="ps-3 fw-bold text-dark">${r.id}</td>
               <td class="text-muted">Piso ${r.id[0]} - ${r.type}</td>
               <td><span class="badge ${c.badge}">${statusLabels[r.status] || r.status}</span></td>
+              <td>${asignacionHtml}</td>
               <td class="text-end pe-3">${btn}</td>
             </tr>
           `;
