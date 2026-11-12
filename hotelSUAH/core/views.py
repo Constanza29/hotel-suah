@@ -934,10 +934,13 @@ def cambiar_estado_aseo(request, numero):
         if accion == 'iniciar':
             hab.estado = 'EnLimpieza'
             hab.save()
-            tarea, _ = TareaLimpieza.objects.get_or_create(habitacion=hab, estado__in=['Pendiente', 'EnProceso'])
-            tarea.estado = 'EnProceso'
-            tarea.responsable = request.user
-            tarea.save()
+            tarea = TareaLimpieza.objects.filter(habitacion=hab, estado__in=['Pendiente', 'EnProceso']).order_by('-id').first()
+            if not tarea:
+                tarea = TareaLimpieza.objects.create(habitacion=hab, estado='EnProceso', responsable=request.user)
+            else:
+                tarea.estado = 'EnProceso'
+                tarea.responsable = request.user
+                tarea.save()
             return JsonResponse({'status': 'ok', 'message': f'Aseo iniciado en habitación {numero}.', 'estado': hab.estado})
 
         elif accion == 'finalizar':
