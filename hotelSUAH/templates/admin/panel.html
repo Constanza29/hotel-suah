@@ -1047,31 +1047,31 @@
         
         <div class="card bg-light border-0 p-3 rounded-3 mb-3">
           <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" id="chk-sabanas" checked>
+            <input class="form-check-input" type="checkbox" id="chk-sabanas">
             <label class="form-check-label small fw-semibold" for="chk-sabanas">
               Sábanas y fundas limpias cambiadas
             </label>
           </div>
           <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" id="chk-toallas" checked>
+            <input class="form-check-input" type="checkbox" id="chk-toallas">
             <label class="form-check-label small fw-semibold" for="chk-toallas">
               Toallas y batas de baño repuestas
             </label>
           </div>
           <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" id="chk-bano" checked>
+            <input class="form-check-input" type="checkbox" id="chk-bano">
             <label class="form-check-label small fw-semibold" for="chk-bano">
               Baño y sanitarios desinfectados
             </label>
           </div>
           <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" id="chk-amenities" checked>
+            <input class="form-check-input" type="checkbox" id="chk-amenities">
             <label class="form-check-label small fw-semibold" for="chk-amenities">
               Amenities completos (jabón, shampoo, acondicionador, gorro)
             </label>
           </div>
           <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="chk-piso" checked>
+            <input class="form-check-input" type="checkbox" id="chk-piso">
             <label class="form-check-label small fw-semibold" for="chk-piso">
               Piso aspirado y superficies sanitizadas
             </label>
@@ -1947,11 +1947,11 @@
   // --- CHECKLIST DE INSUMOS Y ASEO  ---
   function abrirChecklistAseo(num) {
     document.getElementById('chk-hab-numero').innerText = num;
-    document.getElementById('chk-sabanas').checked = true;
-    document.getElementById('chk-toallas').checked = true;
-    document.getElementById('chk-bano').checked = true;
-    document.getElementById('chk-amenities').checked = true;
-    document.getElementById('chk-piso').checked = true;
+    document.getElementById('chk-sabanas').checked = false;
+    document.getElementById('chk-toallas').checked = false;
+    document.getElementById('chk-bano').checked = false;
+    document.getElementById('chk-amenities').checked = false;
+    document.getElementById('chk-piso').checked = false;
     document.getElementById('chk-observaciones').value = '';
     
     // Ocultar caja de falla
@@ -1972,12 +1972,23 @@
 
   function ejecutarFinalizarAseoConChecklist() {
     const num = document.getElementById('chk-hab-numero').innerText;
+    const chkSab = document.getElementById('chk-sabanas').checked;
+    const chkToa = document.getElementById('chk-toallas').checked;
+    const chkBan = document.getElementById('chk-bano').checked;
+    const chkAme = document.getElementById('chk-amenities').checked;
+    const chkPis = document.getElementById('chk-piso').checked;
+
+    if (!chkSab || !chkToa || !chkBan || !chkAme || !chkPis) {
+      showToast('Debe verificar y marcar TODOS los ítems del checklist de insumos antes de finalizar.', 'danger');
+      return;
+    }
+
     const checklist = {
-      sabanas: document.getElementById('chk-sabanas').checked,
-      toallas: document.getElementById('chk-toallas').checked,
-      bano: document.getElementById('chk-bano').checked,
-      amenities: document.getElementById('chk-amenities').checked,
-      piso: document.getElementById('chk-piso').checked,
+      sabanas: chkSab,
+      toallas: chkToa,
+      bano: chkBan,
+      amenities: chkAme,
+      piso: chkPis,
     };
     const obs = document.getElementById('chk-observaciones').value;
 
