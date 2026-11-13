@@ -26,15 +26,57 @@
       </div>
       {% endif %}
 
-      <!-- FORMULARIO DE ACCESO DIRECTO CON CREDENCIALES -->
+      {% if paso == 'mfa' %}
+      <!-- PASO 2: VERIFICACIÓN SEGUNDO FACTOR (MFA / TOTP) -->
+      <div>
+        <div class="text-center mb-3">
+          <span class="badge bg-primary text-uppercase mb-2 px-3 py-1">Paso 2: Segundo Factor (MFA)</span>
+          <h5 class="fw-bold text-dark mb-1">Verificación de Identidad</h5>
+          <small class="text-muted d-block">{{ mfa_email }}</small>
+        </div>
+
+        <div class="text-center mb-3 p-3 border rounded-3 bg-light shadow-xs">
+          {% if mfa_qr %}
+          <img src="data:image/png;base64,{{ mfa_qr }}" alt="QR MFA Intranet" class="img-fluid rounded border bg-white p-2 mb-2 shadow-xs" style="max-width: 150px;">
+          {% endif %}
+          <p class="mb-1 text-dark fw-bold small">
+            <i class="bi bi-qr-code-scan text-primary me-1"></i> Escanea con tu App Autenticadora
+          </p>
+          <small class="text-muted d-block" style="font-size: 0.72rem;">
+            Compatible con <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong> o <strong>Authy</strong>.
+          </small>
+        </div>
+
+        <form method="POST" action="{% url 'login_admin' %}">
+          {% csrf_token %}
+          <input type="hidden" name="paso" value="mfa">
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-secondary d-block text-center">CÓDIGO DE SEGURIDAD (6 DÍGITOS)</label>
+            <input type="text" name="codigo_otp" maxlength="6" autofocus required placeholder="000000" class="form-control form-control-lg text-center fw-bold fs-4 font-monospace border-2 border-primary" style="letter-spacing: 0.35rem;" autocomplete="off">
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm mb-2">
+            Verificar y Acceder al Panel <i class="bi bi-shield-check ms-1"></i>
+          </button>
+        </form>
+
+        <a href="{% url 'login_admin' %}" class="btn btn-link btn-sm text-secondary w-100 text-decoration-none text-center">
+          <i class="bi bi-arrow-left me-1"></i> Volver a ingresar credenciales
+        </a>
+      </div>
+
+      {% else %}
+      <!-- PASO 1: CREDENCIALES INSTITUCIONALES -->
       <form method="POST" action="{% url 'login_admin' %}">
         {% csrf_token %}
+        <input type="hidden" name="paso" value="credenciales">
 
         <div class="mb-3">
           <label class="form-label small fw-bold text-secondary">CORREO INSTITUCIONAL</label>
           <div class="input-group">
             <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-fill text-muted"></i></span>
-            <input type="email" name="email" required placeholder="ej: rep@suah.cl" class="form-control border-start-0">
+            <input type="email" name="email" required placeholder="nombre@suah.cl" class="form-control border-start-0">
           </div>
         </div>
 
@@ -42,14 +84,15 @@
           <label class="form-label small fw-bold text-secondary">CONTRASEÑA</label>
           <div class="input-group">
             <span class="input-group-text bg-light border-end-0"><i class="bi bi-key-fill text-muted"></i></span>
-            <input type="password" name="password" required placeholder="****" class="form-control border-start-0">
+            <input type="password" name="password" required placeholder="••••••••" class="form-control border-start-0">
           </div>
         </div>
 
         <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">
-          Iniciar Sesión <i class="bi bi-box-arrow-in-right ms-1"></i>
+          Continuar a Validación MFA <i class="bi bi-shield-lock ms-1"></i>
         </button>
       </form>
+      {% endif %}
 
     </div>
   </div>

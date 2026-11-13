@@ -554,18 +554,52 @@ def login_admin_view(request):
         return redirect('panel_operativo')
 
     if request.method == 'POST':
-        email = request.POST.get('email', '').strip()
-        password = request.POST.get('password', '')
-        user = authenticate(request, username=email, password=password)
-        if user is not None:
-            # Validar que pertenezca a staff o admin
-            if not (user.is_superuser or user.groups.filter(name__in=['recepcion', 'housekeeping', 'mantenimiento']).exists()):
-                return render(request, 'admin/login.html', {'error': 'Acceso denegado: cuenta no pertenece al personal del hotel.'})
+        paso = request.POST.get('paso', 'credenciales')
 
-            login(request, user)
-            return redirect('panel_operativo')
-        else:
-            return render(request, 'admin/login.html', {'error': 'Credenciales incorrectas o usuario no autorizado.'})
+        if paso == 'credenciales':
+            email = request.POST.get('email', '').strip()
+            password = request.POST.get('password', '')
+            user = authenticate(request, username=email, password=password)
+            if user is not None:
+                # Validar que pertenezca a staff o admin
+                if not (user.is_superuser or user.groups.filter(name__in=['recepcion', 'housekeeping', 'mantenimiento']).exists()):
+                    return render(request, 'admin/login.html', {'error': 'Acceso denegado: cuenta no pertenece al personal del hotel.'})
+
+                # Generar datos MFA y guardar usuario pendiente en sesión
+                mfa_data = generar_datos_mfa(user)
+                request.session['mfa_pending_staff_user_id'] = user.id
+
+                return render(request, 'admin/login.html', {
+                    'paso': 'mfa',
+                    'mfa_email': user.email or user.username,
+                    'mfa_qr': mfa_data['qr_b64']
+                })
+            else:
+                return render(request, 'admin/login.html', {'error': 'Credenciales incorrectas o usuario no autorizado.'})
+
+        elif paso == 'mfa':
+            user_id = request.session.get('mfa_pending_staff_user_id')
+            if not user_id:
+                return render(request, 'admin/login.html', {'error': 'La sesión de autenticación ha expirado. Reintente desde el inicio.'})
+
+            user = User.objects.filter(id=user_id).first()
+            if not user:
+                return render(request, 'admin/login.html', {'error': 'Usuario no válido.'})
+
+            codigo_otp = request.POST.get('codigo_otp', '').strip()
+            if validar_codigo_mfa(user, codigo_otp):
+                login(request, user)
+                if 'mfa_pending_staff_user_id' in request.session:
+                    del request.session['mfa_pending_staff_user_id']
+                return redirect('panel_operativo')
+            else:
+                mfa_data = generar_datos_mfa(user)
+                return render(request, 'admin/login.html', {
+                    'paso': 'mfa',
+                    'mfa_email': user.email or user.username,
+                    'mfa_qr': mfa_data['qr_b64'],
+                    'error': 'Código de seguridad incorrecto o expirado (30s). Intente nuevamente.'
+                })
 
     return render(request, 'admin/login.html')
 

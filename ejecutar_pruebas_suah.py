@@ -25,6 +25,8 @@ django.setup()
 
 from django.test import Client
 from django.contrib.auth.models import User
+from core.mfa_service import obtener_secret_mfa_usuario
+import pyotp
 from habitaciones.models import Habitación, TipoHabitacion
 from reservas.models import Reserva, Cliente as ClienteModel, Folio, Cargo, Abono
 from operaciones.models import TareaLimpieza, OrdenMantenimiento, MensajeContacto
@@ -103,21 +105,29 @@ class TestRunnerSUAH:
     # --------------------------------------------------------------------------
     def test_ps01_login_recepcionista(self):
         c = Client()
-        res = c.post('/login-admin/', {'email': 'rep@suah.cl', 'password': '1234'})
-        if res.status_code == 302 and res.url == '/panel/':
-            self.registrar("PS-01", "Login correcto (Recepcionista)", "EXITOSA",
-                           "Código 302 Redirect a /panel/, sesión creada y rol recepcionista autenticado.")
+        # Paso 1: Credenciales primarias -> Solicita MFA
+        res1 = c.post('/login-admin/', {'paso': 'credenciales', 'email': 'rep@suah.cl', 'password': '1234'})
+        # Paso 2: Validación segundo factor TOTP MFA
+        u = User.objects.get(username='rep@suah.cl')
+        otp = pyotp.TOTP(obtener_secret_mfa_usuario(u), interval=30).now()
+        res2 = c.post('/login-admin/', {'paso': 'mfa', 'codigo_otp': otp})
+        if res1.status_code == 200 and res2.status_code == 302 and res2.url == '/panel/':
+            self.registrar("PS-01", "Login correcto con MFA (Recepcionista)", "EXITOSA",
+                           "Autenticación en 2 pasos completada: Credenciales + TOTP MFA verificados, redirect 302 a /panel/ con rol recepcionista.")
         else:
-            self.registrar("PS-01", "Login correcto (Recepcionista)", "FALLIDA", f"Código {res.status_code}")
+            self.registrar("PS-01", "Login correcto con MFA (Recepcionista)", "FALLIDA", f"Código Paso1:{res1.status_code}, Paso2:{res2.status_code}")
 
     def test_ps02_login_housekeeping(self):
         c = Client()
-        res = c.post('/login-admin/', {'email': 'aseo@suah.cl', 'password': '1234'})
-        if res.status_code == 302 and res.url == '/panel/':
-            self.registrar("PS-02", "Login correcto (Housekeeping)", "EXITOSA",
-                           "Código 302 Redirect a /panel/, sesión autenticada con rol Housekeeping.")
+        res1 = c.post('/login-admin/', {'paso': 'credenciales', 'email': 'aseo@suah.cl', 'password': '1234'})
+        u = User.objects.get(username='aseo@suah.cl')
+        otp = pyotp.TOTP(obtener_secret_mfa_usuario(u), interval=30).now()
+        res2 = c.post('/login-admin/', {'paso': 'mfa', 'codigo_otp': otp})
+        if res1.status_code == 200 and res2.status_code == 302 and res2.url == '/panel/':
+            self.registrar("PS-02", "Login correcto con MFA (Housekeeping)", "EXITOSA",
+                           "Autenticación en 2 pasos completada: Credenciales + TOTP MFA verificados, redirect 302 a /panel/ con rol Housekeeping.")
         else:
-            self.registrar("PS-02", "Login correcto (Housekeeping)", "FALLIDA", f"Código {res.status_code}")
+            self.registrar("PS-02", "Login correcto con MFA (Housekeeping)", "FALLIDA", f"Código Paso1:{res1.status_code}, Paso2:{res2.status_code}")
 
     def test_ps03_login_clave_incorrecta(self):
         c = Client()
