@@ -1,0 +1,97 @@
+================================================================================
+          SUAH - SISTEMA UNIFICADO DE ADMINISTRACIÓN HOTELERA
+                 LISTADO OFICIAL DE CUENTAS DEMO Y ACCESOS
+================================================================================
+
+Este documento contiene todas las credenciales activas en la base de datos para
+las pruebas, demostración docente y evaluación del sistema SUAH.
+
+--------------------------------------------------------------------------------
+1. ACCESO INTRANET / PERSONAL Y GERENCIA (URL: /login-admin/)
+   * Flujo de Seguridad con Autenticación en Dos Pasos (MFA / TOTP)
+--------------------------------------------------------------------------------
+
+A) ADMINISTRACIÓN GENERAL Y GERENCIA (Acceso a todas las áreas)
+   • Nombre Completo : Constanza Cortés
+   • Correo          : admin@suah.cl
+   • Contraseña      : admin123
+   • Permisos        : Acceso completo (Recepción, Housekeeping, Mantenimiento,
+                       Nómina de Personal, Métricas y Gestión Global).
+
+B) RECEPCIÓN / FRONT DESK (Check-in, Check-out, Terminal POS, Asignaciones)
+   • Recepcionista 1 : Matías Sepúlveda
+     - Correo        : rep@suah.cl
+     - Contraseña    : 1234
+   • Recepcionista 2 : Valentina Soto
+     - Correo        : valentina.soto@suah.cl
+     - Contraseña    : 1234
+
+C) HOUSEKEEPING / MUCAMAS Y ASEO (Limpieza de Habitaciones, Insumos de Huéspedes)
+   • Camarera Jefa   : Marta Henríquez
+     - Correo        : aseo@suah.cl
+     - Contraseña    : 1234
+   • Camarera 2      : Camila Vega
+     - Correo        : camila.vega@suah.cl
+     - Contraseña    : 1234
+   • Camarera 3      : Rosa Morales
+     - Correo        : rosa.morales@suah.cl
+     - Contraseña    : 1234
+
+D) MANTENIMIENTO TÉCNICO (Reparaciones, Desperfectos, Solicitudes Técnicas Huéspedes)
+   • Técnico Titular : Jorge Valenzuela
+     - Correo        : mant@suah.cl
+     - Contraseña    : 1234
+   • Técnico Apoyo   : Pedro Araya
+     - Correo        : pedro.araya@suah.cl
+     - Contraseña    : 1234
+
+   * NOTA SOBRE MFA: Tras ingresar el correo y contraseña, el sistema solicita
+     el código de 6 dígitos de la app autenticadora (Paso 2). Escanea el Código
+     QR desplegado en pantalla con Google Authenticator o Microsoft Authenticator.
+
+--------------------------------------------------------------------------------
+2. ACCESO CLIENTE / HUÉSPED (PORTAL WEB - URL: /)
+--------------------------------------------------------------------------------
+   • Nombre Completo : Constanza Cortés
+   • RUT             : 19.876.543-2
+   • Correo          : cliente@suah.cl
+   • Contraseña      : Cliente123!
+   • Permisos        : Reserva online, Webpay integrado, Portal de Huésped,
+                       Solicitud de Insumos y Reportes de Mantenimiento en vivo.
+
+   * NOTA: También es posible registrar cualquier nuevo huésped directamente 
+     desde el botón "Portal Huésped" -> "Crear Cuenta Segura".
+
+--------------------------------------------------------------------------------
+3. DATOS OFICIALES DE PRUEBA TRANSBANK WEBPAY PLUS (INTEGRACIÓN DESARROLLADORES)
+--------------------------------------------------------------------------------
+
+A) TARJETA DE CRÉDITO APROBADA (VISA):
+   • Número de Tarjeta : 4051 8856 0044 6623
+   • Fecha Expiración  : 12/28 (o cualquier fecha futura)
+   • CVV               : 123
+   • Pantalla Bancaria de Confirmación (Webpay):
+     - RUT Pagador     : 11.111.111-1
+     - Clave Bancaria  : 123
+   • Resultado         : Transacción Aprobada. Retorna código de autorización
+                         oficial, descuenta deuda del folio y emite voucher verde.
+
+B) TARJETA DE DÉBITO APROBADA (REDCOMPRA):
+   • Número de Tarjeta : 4051 8842 3993 7763
+   • Fecha Expiración  : 12/28
+   • CVV               : 123
+   • Pantalla Bancaria de Confirmación (Redcompra):
+     - RUT Pagador     : 11.111.111-1
+     - Clave Bancaria  : 123
+   • Resultado         : Transacción Débito Aprobada y abono registrado.
+
+C) TARJETA DE PRUEBA RECHAZADA (SIMULACIÓN DE ERROR / FONDOS INSUFICIENTES):
+   • Número de Tarjeta : 5186 0595 5959 0568
+   • Fecha Expiración  : 12/28
+   • CVV               : 123
+   • Resultado         : Transbank rechaza la transacción y emite comprobante
+                         rojo de "Transacción Rechazada" sin alterar folios.
+
+================================================================================
+               Hotel SUAH © 2026 - Documento Oficial de Soporte
+================================================================================
