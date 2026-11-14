@@ -72,6 +72,20 @@ def sincronizar_reservas_y_habitaciones_automatico():
                 t.responsable = obtener_camarera_disponible()
                 t.save()
 
+    for hab in Habitación.objects.filter(estado='Ocupada'):
+        if not hab.reservas.filter(estado__in=['Confirmada', 'CheckIn']).exists():
+            ultima_res = hab.reservas.order_by('-id').first()
+            if ultima_res and hasattr(ultima_res, 'folio'):
+                ultima_res.fecha_checkin = hoy - datetime.timedelta(days=1)
+                ultima_res.fecha_checkout = hoy + datetime.timedelta(days=2)
+                ultima_res.estado = 'CheckIn'
+                ultima_res.save()
+                ultima_res.folio.abierto = True
+                ultima_res.folio.save()
+            else:
+                hab.estado = 'Disponible'
+                hab.save()
+
 
 def index(request):
     sincronizar_reservas_y_habitaciones_automatico()

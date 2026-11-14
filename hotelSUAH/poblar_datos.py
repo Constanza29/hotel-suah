@@ -141,12 +141,22 @@ for item in data_habitaciones:
                 'cliente': cliente,
                 'habitacion': hab,
                 'fecha_checkin': today - datetime.timedelta(days=1),
-                'fecha_checkout': today + datetime.timedelta(days=1),
+                'fecha_checkout': today + datetime.timedelta(days=2),
                 'num_huespedes': 2,
                 'estado': 'CheckIn'
             }
         )
+        reserva.cliente = cliente
+        reserva.habitacion = hab
+        reserva.fecha_checkin = today - datetime.timedelta(days=1)
+        reserva.fecha_checkout = today + datetime.timedelta(days=2)
+        reserva.estado = 'CheckIn'
+        reserva.save()
+
         folio, _ = Folio.objects.get_or_create(reserva=reserva)
+        folio.abierto = True
+        folio.fecha_cierre = None
+        folio.save()
         folio.cargos.all().delete()
         folio.abonos.all().delete()
         for desc, monto in item.get('cargos', []):
