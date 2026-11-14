@@ -1,17 +1,11 @@
-﻿# Entornos virtuales Python
 venv/
 hotelSUAH/venv/
 env/
 .venv/
-
-# Bytecode Python y base de datos local
 __pycache__/
 *.py[cod]
 *$py.class
-*.sqlite3
 .pytest_cache/
-
-# Variables de entorno y editores
 .env
 .env.local
 *.log
@@ -20,6 +14,4 @@ hotelSUAH/.vscode/
 .idea/
 .DS_Store
 Thumbs.db
-
-# Carpeta local de extras y documentacion (solo local, no subir a GitHub)
 Documentacion_Y_Referencia/
