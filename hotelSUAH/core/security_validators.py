@@ -1,17 +1,6 @@
 import re
-from django.core.exceptions import ValidationError
 
 def validar_politica_contrasena_chile(password, password_confirm=None):
-    """
-    Política de contraseñas robustas alineada con la Ley N° 21.459 (Delitos Informáticos),
-    Ley N° 21.719 (Protección de Datos Personales en Chile), ISO/IEC 27001 y OWASP:
-    - Longitud mínima de 8 caracteres (recomendado 10+)
-    - Coincidencia exacta con la confirmación de contraseña
-    - Al menos una letra mayúscula (A-Z)
-    - Al menos una letra minúscula (a-z)
-    - Al menos un número (0-9)
-    - Al menos un carácter especial (@, $, !, %, *, ?, &, #, _, -, .)
-    """
     errores = []
 
     if password_confirm is not None and password != password_confirm:

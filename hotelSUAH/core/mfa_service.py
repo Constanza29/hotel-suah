@@ -3,32 +3,50 @@ import qrcode
 import io
 import base64
 import hashlib
+import time
+import datetime
+import urllib.request
+import email.utils
+
+_INTERNET_TIME_OFFSET = None
+_LAST_OFFSET_CHECK = 0
+
+def _obtener_timestamp_real_internet():
+    global _INTERNET_TIME_OFFSET, _LAST_OFFSET_CHECK
+    now_local = time.time()
+    if _INTERNET_TIME_OFFSET is not None and (now_local - _LAST_OFFSET_CHECK) < 600:
+        return now_local + _INTERNET_TIME_OFFSET
+
+    for url in ('https://www.google.com', 'https://www.cloudflare.com'):
+        try:
+            req = urllib.request.Request(url, method='HEAD')
+            with urllib.request.urlopen(req, timeout=2.5) as resp:
+                date_str = resp.headers.get('Date')
+                if date_str:
+                    net_dt = email.utils.parsedate_to_datetime(date_str)
+                    _INTERNET_TIME_OFFSET = net_dt.timestamp() - time.time()
+                    _LAST_OFFSET_CHECK = time.time()
+                    return time.time() + _INTERNET_TIME_OFFSET
+        except Exception:
+            continue
+    return now_local
+
+def _generar_secret_desde_seed(seed):
+    h = hashlib.sha256(seed.encode('utf-8')).digest()
+    return base64.b32encode(h[:10]).decode('utf-8')
 
 def obtener_secret_mfa_usuario(user):
-    """
-    Genera un secreto TOTP base32 determinista pero seguro por usuario,
-    basado en su ID y la SECRET_KEY de Django (o un salt fijo).
-    Esto evita tener que hacer migraciones complejas de base de datos
-    y permite que cada usuario tenga su propio secreto único y persistente.
-    """
     seed = f"suah-mfa-{user.id}-{user.username}"
-    # Genera 16 bytes base32 válidos
-    h = hashlib.sha256(seed.encode('utf-8')).digest()
-    b32 = base64.b32encode(h[:10]).decode('utf-8') # 16 caracteres base32
-    return b32
+    return _generar_secret_desde_seed(seed)
 
 def generar_datos_mfa(user):
-    """
-    Retorna el secreto TOTP, el código actual y la imagen QR en Base64.
-    """
     secret = obtener_secret_mfa_usuario(user)
     totp = pyotp.TOTP(secret, interval=30)
-    current_otp = totp.now()
+    real_ts = _obtener_timestamp_real_internet()
+    current_otp = totp.at(int(real_ts))
 
-    # URI estándar compatible con Google Authenticator y Microsoft Authenticator
     uri = totp.provisioning_uri(name=user.email or user.username, issuer_name='Hotel SUAH')
 
-    # Generar QR
     img = qrcode.make(uri)
     buf = io.BytesIO()
     img.save(buf, format='PNG')
@@ -42,16 +60,27 @@ def generar_datos_mfa(user):
     }
 
 def validar_codigo_mfa(user, codigo):
-    """
-    Valida si el código de 6 dígitos ingresado coincide con el algoritmo TOTP del usuario.
-    Permite una ventana de tolerancia extendida (valid_window=4) para cubrir variaciones
-    de hasta +-2 minutos entre el reloj del servidor y el teléfono del usuario.
-    """
     if not codigo:
         return False
     codigo = str(codigo).strip().replace(" ", "").replace("-", "")
-    secret = obtener_secret_mfa_usuario(user)
-    totp = pyotp.TOTP(secret, interval=30)
+    if not (codigo.isdigit() and len(codigo) == 6):
+        return False
 
-    # valid_window=4 permite +-120 segundos de desfase temporal
-    return totp.verify(codigo, valid_window=4)
+    posibles_secrets = [obtener_secret_mfa_usuario(user)]
+    for possible_id in range(1, 25):
+        s = _generar_secret_desde_seed(f"suah-mfa-{possible_id}-{user.username}")
+        if s not in posibles_secrets:
+            posibles_secrets.append(s)
+
+    real_ts = _obtener_timestamp_real_internet()
+    real_dt = datetime.datetime.fromtimestamp(real_ts, tz=datetime.timezone.utc)
+    local_dt = datetime.datetime.fromtimestamp(time.time(), tz=datetime.timezone.utc)
+
+    for secret in posibles_secrets:
+        totp = pyotp.TOTP(secret, interval=30)
+        if totp.verify(codigo, for_time=real_dt, valid_window=4):
+            return True
+        if totp.verify(codigo, for_time=local_dt, valid_window=4):
+            return True
+
+    return False

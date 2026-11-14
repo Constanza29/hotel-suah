@@ -1,4 +1,5 @@
 import json
+import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User, Group
@@ -7,7 +8,6 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.db import transaction
 from django.utils import timezone
-import datetime
 
 from habitaciones.models import Habitación, TipoHabitacion
 from reservas.models import Reserva, Cliente, Folio, Cargo, Abono
@@ -17,9 +17,6 @@ from core.rut_and_email_validators import validar_documento_identidad, validar_c
 from core.mfa_service import generar_datos_mfa, validar_codigo_mfa
 from core.webpay_service import iniciar_pago_webpay, confirmar_pago_webpay
 
-# ========================================================
-# FUNCIONES AUXILIARES DE CONTROL DE ACCESO (RBAC)
-# ========================================================
 
 def es_recepcionista(user):
     return user.is_authenticated and (user.groups.filter(name='recepcion').exists() or user.is_superuser)
@@ -55,22 +52,9 @@ def obtener_tecnico_disponible():
     cargas = {u: OrdenMantenimiento.objects.filter(asignado_a=u, estado__in=['Abierta', 'EnReparacion']).count() for u in staff_mant}
     return min(cargas, key=cargas.get)
 
-# ========================================================
-# VISTAS PÚBLICAS Y RESERVAS WEB
-# ========================================================
 
 def sincronizar_reservas_y_habitaciones_automatico():
-    """
-    Regla de Negocio Automatizada:
-    1. Si una reserva ya superó su fecha de Check-out (checkout < hoy) y estaba Ocupada o CheckIn,
-       finaliza la estadía de la reserva a CheckOut y marca la habitación como 'Sucia'
-       enviando automáticamente orden de sanitización a Housekeeping.
-    2. Si una habitación 'Ocupada' no tiene ninguna reserva activa en el día de hoy,
-       se libera a 'Disponible' (o 'Sucia' si requiere aseo).
-    """
     hoy = datetime.date.today()
-    
-    # Reservas vencidas
     reservas_vencidas = Reserva.objects.filter(
         fecha_checkout__lt=hoy,
         estado__in=['Confirmada', 'CheckIn']
@@ -88,6 +72,7 @@ def sincronizar_reservas_y_habitaciones_automatico():
                 t.responsable = obtener_camarera_disponible()
                 t.save()
 
+
 def index(request):
     sincronizar_reservas_y_habitaciones_automatico()
     hoy = datetime.date.today()
@@ -102,9 +87,8 @@ def index(request):
     if request.user.is_authenticated:
         c = Cliente.objects.filter(email=request.user.email).first()
         cliente_nombre = c.nombre_completo if c else request.user.first_name or request.user.username
-        
+
         if c:
-            # 1. Estadía en Curso: Check-in ya realizado o fecha_checkin <= hoy <= fecha_checkout
             reserva_activa = Reserva.objects.filter(
                 cliente=c,
                 estado__in=['CheckIn', 'Confirmada'],
@@ -115,7 +99,6 @@ def index(request):
             if reserva_activa and hasattr(reserva_activa, 'folio'):
                 folio_huesped = reserva_activa.folio
 
-            # 2. Si no está en curso hoy, verificar si tiene una Reserva Futura Confirmada
             if not reserva_activa:
                 reserva_futura = Reserva.objects.filter(
                     cliente=c,
@@ -133,6 +116,7 @@ def index(request):
         'hoy': hoy,
     })
 
+
 def buscar_disponibilidad_api(request):
     sincronizar_reservas_y_habitaciones_automatico()
     hoy = datetime.date.today()
@@ -149,21 +133,18 @@ def buscar_disponibilidad_api(request):
     except ValueError:
         return JsonResponse({'status': 'error', 'message': 'Formato de fecha inválido (AAAA-MM-DD).'}, status=400)
 
-    # Validaciones temporales estrictas (CU-01 / RN-01)
     if f_in < hoy:
         return JsonResponse({'status': 'error', 'message': f'La fecha de llegada ({f_in.strftime("%d/%m/%Y")}) no puede ser anterior al día de hoy ({hoy.strftime("%d/%m/%Y")}).'}, status=400)
 
     if f_out <= f_in:
         return JsonResponse({'status': 'error', 'message': f'La fecha de salida ({f_out.strftime("%d/%m/%Y")}) debe ser posterior a la fecha de llegada ({f_in.strftime("%d/%m/%Y")}).'}, status=400)
 
-    # Habitaciones con reservas confirmadas o check-in que se solapan con este rango (RN-01)
     reservas_solapadas = set(Reserva.objects.filter(
         estado__in=['Confirmada', 'CheckIn'],
         fecha_checkin__lt=f_out,
         fecha_checkout__gt=f_in
     ).values_list('habitacion__numero', flat=True))
 
-    # Habitaciones disponibles: No solapadas y aptas
     habitaciones = Habitación.objects.exclude(numero__in=reservas_solapadas).exclude(estado__in=['Mantenimiento', 'Sucia', 'EnLimpieza']).select_related('tipo').order_by('numero')
 
     data = []
@@ -177,6 +158,7 @@ def buscar_disponibilidad_api(request):
             'imagen': h.tipo.imagen_url or ''
         })
     return JsonResponse({'status': 'ok', 'habitaciones': data, 'noches': (f_out - f_in).days})
+
 
 @require_POST
 def cliente_registro_api(request):
@@ -195,25 +177,21 @@ def cliente_registro_api(request):
     if not nombre or not email or not password or not password_confirm:
         return JsonResponse({'status': 'error', 'message': 'Todos los campos obligatorios deben ser completados.'}, status=400)
 
-    # Validación estricta de correo real
     correo_valido, msg_correo = validar_correo_real(email)
     if not correo_valido:
         return JsonResponse({'status': 'error', 'message': msg_correo}, status=400)
 
-    # Validación de documento de identidad (RUT o Pasaporte)
     tipo_doc = data.get('tipo_doc', 'rut')
     doc_valido, msg_doc, rut_limpio = validar_documento_identidad(tipo_doc, rut)
     if not doc_valido:
         return JsonResponse({'status': 'error', 'message': msg_doc}, status=400)
     rut = rut_limpio
 
-    # Validación de número telefónico
     tel_valido, msg_tel, tel_formateado = validar_telefono_chileno(telefono)
     if not tel_valido:
         return JsonResponse({'status': 'error', 'message': msg_tel}, status=400)
     telefono = tel_formateado
 
-    # Validación estricta de contraseña según normativa chilena (Ley 21.459 y 21.719)
     errores_clave = validar_politica_contrasena_chile(password, password_confirm)
     if errores_clave:
         return JsonResponse({'status': 'error', 'message': ' | '.join(errores_clave)}, status=400)
@@ -229,6 +207,7 @@ def cliente_registro_api(request):
 
     return JsonResponse({'status': 'ok', 'message': '¡Cuenta creada con éxito! Ahora puedes iniciar sesión de forma segura.'})
 
+
 @require_POST
 def cliente_login_api(request):
     try:
@@ -236,14 +215,13 @@ def cliente_login_api(request):
     except json.JSONDecodeError:
         return JsonResponse({'status': 'error', 'message': 'Datos malformados.'}, status=400)
 
-    paso = data.get('paso', 'credenciales') # 'credenciales' o 'mfa'
+    paso = data.get('paso', 'credenciales')
     email = data.get('email', '').strip().lower()
 
     if paso == 'credenciales':
         password = data.get('password', '')
         user = authenticate(request, username=email, password=password)
         if user is not None:
-            # Credenciales primarias válidas -> Generar datos MFA (QR y código OTP)
             mfa_data = generar_datos_mfa(user)
             request.session['mfa_pending_user_id'] = user.id
             cliente = Cliente.objects.filter(email=email).first()
@@ -286,10 +264,12 @@ def cliente_login_api(request):
 
     return JsonResponse({'status': 'error', 'message': 'Paso no reconocido.'}, status=400)
 
+
 @require_POST
 def cliente_logout_api(request):
     logout(request)
     return JsonResponse({'status': 'ok', 'message': 'Sesión cerrada.'})
+
 
 @require_POST
 def reservar_publico_api(request):
@@ -336,7 +316,6 @@ def reservar_publico_api(request):
 
     hab = get_object_or_404(Habitación, numero=numero_hab)
 
-    # Validar que no haya cruce de reservas en ese rango
     solapada = Reserva.objects.filter(
         habitacion=hab,
         estado__in=['Confirmada', 'CheckIn'],
@@ -356,8 +335,7 @@ def reservar_publico_api(request):
             defaults={'nombre_completo': nombre}
         )
         codigo = f"RES-{hab.numero}-{int(timezone.now().timestamp()) % 10000}"
-        
-        # Si la reserva comienza hoy mismo, pasa a CheckIn y ocupa la habitación; si es a futuro, queda Confirmada
+
         es_hoy = (f_in == hoy)
         estado_reserva = 'CheckIn' if es_hoy else 'Confirmada'
 
@@ -376,13 +354,14 @@ def reservar_publico_api(request):
             descripcion=f"Alojamiento {hab.tipo.nombre} ({noches} noche{'s' if noches > 1 else ''}: {f_in.strftime('%d/%m')} al {f_out.strftime('%d/%m')})",
             monto=monto_total
         )
-        
+
         if es_hoy:
             hab.estado = 'Ocupada'
             hab.save()
 
     msg_extra = "¡Tu estadía comienza hoy! Puedes acceder a los servicios de habitación." if es_hoy else f"Tu reserva futura quedó confirmada para el {f_in.strftime('%d/%m/%Y')}."
     return JsonResponse({'status': 'ok', 'message': f'¡Reserva {codigo} creada con éxito! {msg_extra}'})
+
 
 @login_required
 @require_POST
@@ -400,14 +379,13 @@ def huesped_solicitar_servicio(request):
     except json.JSONDecodeError:
         return JsonResponse({'status': 'error', 'message': 'Datos inválidos.'}, status=400)
 
-    tipo_solicitud = data.get('tipo', 'consumo') # 'consumo', 'aseo', 'mantenimiento'
+    tipo_solicitud = data.get('tipo', 'consumo')
     detalle = data.get('detalle', '').strip()
     monto = int(data.get('monto', 0))
 
     with transaction.atomic():
         if tipo_solicitud == 'aseo':
-            # Solicitud de insumos/limpieza a Housekeeping durante la estadía
-            tarea = TareaLimpieza.objects.create(
+            TareaLimpieza.objects.create(
                 habitacion=reserva.habitacion,
                 estado='Pendiente',
                 observaciones=f"[Solicitud Huésped - Hab {reserva.habitacion.numero}] {detalle}"
@@ -415,7 +393,6 @@ def huesped_solicitar_servicio(request):
             return JsonResponse({'status': 'ok', 'message': f'Solicitud enviada a Housekeeping: "{detalle}". El personal acudirá a tu habitación a la brevedad.'})
 
         elif tipo_solicitud == 'mantenimiento':
-            # Reporte de falla técnica en habitación ocupada
             OrdenMantenimiento.objects.create(
                 habitacion=reserva.habitacion,
                 descripcion_falla=f"[Reporte Huésped - Hab {reserva.habitacion.numero}] {detalle}",
@@ -425,12 +402,12 @@ def huesped_solicitar_servicio(request):
             return JsonResponse({'status': 'ok', 'message': f'Falla técnica reportada: "{detalle}". El equipo de Mantenimiento fue notificado.'})
 
         else:
-            # Consumo con cargo al folio (Room Service, Spa, Minibar)
             servicio = data.get('servicio', 'Servicio a la Habitación')
             if monto <= 0:
                 monto = 15000
             Cargo.objects.create(folio=reserva.folio, descripcion=f"Solicitud Web: {servicio}", monto=monto)
             return JsonResponse({'status': 'ok', 'message': f'¡{servicio} solicitado y cargado a tu folio de habitación!'})
+
 
 @login_required
 @require_POST
@@ -459,7 +436,6 @@ def huesped_abono_online(request):
 
     try:
         wp_res = iniciar_pago_webpay(buy_order, session_id, monto, return_url)
-        # Guardar datos en sesión para verificar tras el retorno
         request.session['webpay_pending'] = {
             'folio_id': reserva.folio.id,
             'monto': monto,
@@ -475,11 +451,11 @@ def huesped_abono_online(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': f'Error al conectar con Transbank Webpay Developers: {str(e)}'}, status=500)
 
+
 def webpay_retorno_view(request):
     token_ws = request.POST.get('token_ws') or request.GET.get('token_ws')
     tbk_token = request.POST.get('TBK_TOKEN') or request.GET.get('TBK_TOKEN')
 
-    # Transacción anulada por el usuario en Transbank
     if tbk_token and not token_ws:
         return render(request, 'publico/webpay_resultado.html', {
             'exito': False,
@@ -505,7 +481,6 @@ def webpay_retorno_view(request):
         card_detail = commit_res.get('card_detail', {})
         last_digits = card_detail.get('card_number', '****')
 
-        # status == 'AUTHORIZED' y response_code == 0 indica pago aprobado
         if status == 'AUTHORIZED' and response_code == 0:
             pending = request.session.get('webpay_pending', {})
             folio_id = pending.get('folio_id')
@@ -545,9 +520,6 @@ def webpay_retorno_view(request):
             'mensaje_error': f'Error de comunicación con Transbank: {str(e)}'
         })
 
-# ========================================================
-# AUTENTICACIÓN ADMIN / STAFF (RNF-04)
-# ========================================================
 
 def login_admin_view(request):
     if request.user.is_authenticated and (request.user.groups.filter(name__in=['recepcion', 'housekeeping', 'mantenimiento']).exists() or request.user.is_superuser):
@@ -561,11 +533,9 @@ def login_admin_view(request):
             password = request.POST.get('password', '')
             user = authenticate(request, username=email, password=password)
             if user is not None:
-                # Validar que pertenezca a staff o admin
                 if not (user.is_superuser or user.groups.filter(name__in=['recepcion', 'housekeeping', 'mantenimiento']).exists()):
                     return render(request, 'admin/login.html', {'error': 'Acceso denegado: cuenta no pertenece al personal del hotel.'})
 
-                # Generar datos MFA y guardar usuario pendiente en sesión
                 mfa_data = generar_datos_mfa(user)
                 request.session['mfa_pending_staff_user_id'] = user.id
 
@@ -603,9 +573,11 @@ def login_admin_view(request):
 
     return render(request, 'admin/login.html')
 
+
 def logout_admin_view(request):
     logout(request)
     return redirect('login_admin')
+
 
 @login_required
 def panel_operativo(request):
@@ -621,7 +593,6 @@ def panel_operativo(request):
     mantenimiento = habitaciones.filter(estado='Mantenimiento').count()
     ocupacion_pct = int((ocupadas / total * 100)) if total > 0 else 0
 
-    # Solicitudes de Huéspedes en habitaciones ocupadas
     solicitudes_aseo_ocupadas = TareaLimpieza.objects.filter(
         habitacion__estado='Ocupada',
         estado__in=['Pendiente', 'EnProceso']
@@ -631,23 +602,19 @@ def panel_operativo(request):
         estado__in=['Abierta', 'EnReparacion']
     ).select_related('habitacion', 'reportado_por').order_by('-id')
 
-    # Mensajes de Contacto web recibidos (para Recepción y Administrador)
     mensajes_contacto = MensajeContacto.objects.all().select_related('respondido_por').order_by('-fecha_envio')
     mensajes_pendientes_count = mensajes_contacto.filter(estado='Pendiente').count()
 
-    # Personal de staff para asignaciones y nómina general
     staff_aseo = User.objects.filter(groups__name='housekeeping').order_by('first_name')
     staff_mant = User.objects.filter(groups__name='mantenimiento').order_by('first_name')
     nomina_personal = User.objects.filter(
         groups__name__in=['recepcion', 'housekeeping', 'mantenimiento']
     ).distinct().order_by('first_name')
 
-    # Historial de Limpiezas finalizadas
     historial_limpiezas = TareaLimpieza.objects.filter(
         estado='Finalizada'
     ).select_related('habitacion', 'responsable').order_by('-fecha_actualizacion')[:40]
 
-    # Historial de Mantenimientos resueltos
     historial_mantenimientos = OrdenMantenimiento.objects.filter(
         estado='Resuelta'
     ).select_related('habitacion', 'reportado_por', 'asignado_a').order_by('-fecha_resolucion')[:40]
@@ -689,6 +656,7 @@ def panel_operativo(request):
         'historial_mantenimientos': historial_mantenimientos,
     })
 
+
 @login_required
 def get_room_folio(request, numero):
     if not es_recepcionista(request.user):
@@ -696,7 +664,7 @@ def get_room_folio(request, numero):
 
     hab = get_object_or_404(Habitación, numero=numero)
     reserva_activa = hab.reservas.filter(estado__in=['Confirmada', 'CheckIn']).last()
-    
+
     folio_data = None
     if reserva_activa and hasattr(reserva_activa, 'folio'):
         f = reserva_activa.folio
@@ -726,6 +694,7 @@ def get_room_folio(request, numero):
         'folio': folio_data
     })
 
+
 @login_required
 @require_POST
 def agregar_consumo(request, numero):
@@ -743,6 +712,7 @@ def agregar_consumo(request, numero):
 
     Cargo.objects.create(folio=reserva.folio, descripcion=desc, monto=monto)
     return JsonResponse({'status': 'ok', 'message': 'Consumo añadido con éxito.'})
+
 
 @login_required
 @require_POST
@@ -763,12 +733,10 @@ def abonar_folio(request, numero):
     Abono.objects.create(folio=reserva.folio, descripcion='Abono en Caja', monto=monto)
     return JsonResponse({'status': 'ok', 'message': 'Abono registrado con éxito.'})
 
+
 @login_required
 @require_POST
 def checkin_manual(request, numero):
-    """
-    Check-in directo desde mostrador (Recepción) con registro real del huésped.
-    """
     if not es_recepcionista(request.user):
         return HttpResponseForbidden("Acceso denegado: solo personal de Recepción.")
 
@@ -790,26 +758,22 @@ def checkin_manual(request, numero):
     if not nombre or not email:
         return JsonResponse({'status': 'error', 'message': 'El nombre y el correo del huésped son obligatorios.'}, status=400)
 
-    # Validación de correo real
     correo_valido, msg_correo = validar_correo_real(email)
     if not correo_valido:
         return JsonResponse({'status': 'error', 'message': msg_correo}, status=400)
 
-    # Validación de documento (RUT / Pasaporte)
     tipo_doc = data.get('tipo_doc', 'rut')
     doc_valido, msg_doc, rut_limpio = validar_documento_identidad(tipo_doc, rut)
     if not doc_valido:
         return JsonResponse({'status': 'error', 'message': msg_doc}, status=400)
     rut = rut_limpio
 
-    # Validación de número telefónico
     tel_valido, msg_tel, tel_formateado = validar_telefono_chileno(telefono)
     if not tel_valido:
         return JsonResponse({'status': 'error', 'message': msg_tel}, status=400)
     telefono = tel_formateado
 
     with transaction.atomic():
-        # Registrar o actualizar la ficha del huésped
         cliente, _ = Cliente.objects.get_or_create(
             email=email,
             defaults={'nombre_completo': nombre, 'rut': rut, 'telefono': telefono}
@@ -822,7 +786,6 @@ def checkin_manual(request, numero):
             cliente.nombre_completo = nombre
         cliente.save()
 
-        # Calcular fechas de estadía
         hoy = datetime.date.today()
         salida = hoy + datetime.timedelta(days=max(1, noches))
 
@@ -837,7 +800,6 @@ def checkin_manual(request, numero):
             estado='CheckIn'
         )
 
-        # Crear folio y cargar noches de alojamiento
         folio = Folio.objects.create(reserva=reserva)
         monto_alojamiento = hab.tipo.precio_base * noches
         Cargo.objects.create(
@@ -846,7 +808,6 @@ def checkin_manual(request, numero):
             monto=monto_alojamiento
         )
 
-        # Si el recepcionista registró un abono inicial en el checkin
         abono_inicial = int(data.get('abono_inicial', 0))
         if abono_inicial > 0:
             metodo = data.get('metodo_abono', 'Efectivo en Caja')
@@ -857,11 +818,11 @@ def checkin_manual(request, numero):
                 metodo_pago=metodo
             )
 
-        # Cambiar estado de la habitación
         hab.estado = 'Ocupada'
         hab.save()
 
     return JsonResponse({'status': 'ok', 'message': f'¡Check-in realizado con éxito para {nombre}! Habitación #{hab.numero} ocupada.'})
+
 
 def finalizar_checkout(request, numero):
     if not es_recepcionista(request.user):
@@ -869,7 +830,7 @@ def finalizar_checkout(request, numero):
 
     hab = get_object_or_404(Habitación, numero=numero)
     reserva = hab.reservas.filter(estado__in=['Confirmada', 'CheckIn']).last()
-    
+
     with transaction.atomic():
         if reserva and hasattr(reserva, 'folio'):
             if reserva.folio.saldo_pendiente > 0:
@@ -885,6 +846,7 @@ def finalizar_checkout(request, numero):
         TareaLimpieza.objects.create(habitacion=hab, estado='Pendiente', responsable=obtener_camarera_disponible())
 
     return JsonResponse({'status': 'ok', 'message': 'Check-out listo. Habitación enviada a Housekeeping (SUCIA).'})
+
 
 @login_required
 @require_POST
@@ -949,6 +911,7 @@ def atender_solicitud_aseo_ocupada(request, tarea_id):
     tarea.save()
 
     return JsonResponse({'status': 'ok', 'message': f'Solicitud #{tarea_id} de insumos/aseo completada con éxito.'})
+
 
 @login_required
 @require_POST
@@ -1022,6 +985,7 @@ def cambiar_estado_aseo(request, numero):
 
     return JsonResponse({'status': 'error', 'message': 'Acción no válida.'}, status=400)
 
+
 @login_required
 @require_POST
 def resolver_mantenimiento(request, numero):
@@ -1038,7 +1002,6 @@ def resolver_mantenimiento(request, numero):
                 orden.asignado_a = request.user
             orden.save()
 
-        # Si la habitación estaba Ocupada por un huésped, se mantiene Ocupada
         if hab.estado == 'Ocupada':
             return JsonResponse({'status': 'ok', 'message': f'Falla resuelta con éxito en Habitación {numero} (el huésped continúa alojado).'})
 
@@ -1048,6 +1011,7 @@ def resolver_mantenimiento(request, numero):
         TareaLimpieza.objects.create(habitacion=hab, estado='Pendiente', responsable=obtener_camarera_disponible())
 
     return JsonResponse({'status': 'ok', 'message': 'Falla resuelta. Habitación derivada a Limpieza para sanitización.'})
+
 
 @require_POST
 def enviar_mensaje_contacto_api(request):
@@ -1063,12 +1027,10 @@ def enviar_mensaje_contacto_api(request):
     if not nombre or not email or not mensaje:
         return JsonResponse({'status': 'error', 'message': 'Por favor completa todos los campos del formulario.'}, status=400)
 
-    # Validación de correo real (igual que en registro y check-in)
     correo_valido, msg_correo = validar_correo_real(email)
     if not correo_valido:
         return JsonResponse({'status': 'error', 'message': msg_correo}, status=400)
 
-    # Validar límite de caracteres (máximo 300 caracteres)
     if len(mensaje) > 300:
         return JsonResponse({'status': 'error', 'message': 'El mensaje no debe superar los 300 caracteres.'}, status=400)
 
@@ -1117,12 +1079,9 @@ def responder_mensaje_contacto_api(request, mensaje_id):
         'message': f'Respuesta registrada y enviada con éxito al correo {msg.email}.'
     })
 
+
 @login_required
 def consultar_disponibilidad_recepcion_api(request):
-    """
-    CU-01: Consulta disponibilidad e inventario en tiempo real con filtro por fecha.
-    Aplica RN-01 (sin superposición de fechas), RN-02 (limpiezas pendientes), RN-03 (bloqueos por mantenimiento).
-    """
     if not (es_recepcionista(request.user) or request.user.is_superuser):
         return HttpResponseForbidden("Acceso denegado: solo personal de Recepción.")
 
@@ -1130,8 +1089,7 @@ def consultar_disponibilidad_recepcion_api(request):
     hasta_str = request.GET.get('hasta')
 
     habitaciones = Habitación.objects.all().select_related('tipo').order_by('numero')
-    
-    # Si no ingresó fechas, retorna el estado actual en vivo
+
     if not desde_str or not hasta_str:
         data = []
         for h in habitaciones:
@@ -1158,7 +1116,6 @@ def consultar_disponibilidad_recepcion_api(request):
     if f_hasta <= f_desde:
         return JsonResponse({'status': 'error', 'message': 'La fecha de salida debe ser posterior a la de entrada.'}, status=400)
 
-    # RN-01: Buscar habitaciones con reservas cruzadas activas en ese rango
     reservas_solapadas = set(Reserva.objects.filter(
         estado__in=['Confirmada', 'CheckIn'],
         fecha_checkin__lt=f_hasta,
@@ -1168,11 +1125,6 @@ def consultar_disponibilidad_recepcion_api(request):
     data = []
     for h in habitaciones:
         tiene_reserva_cruzada = h.numero in reservas_solapadas
-        
-        # RN-01 (Sin cruce de reserva), RN-02 (No debe estar sucia ni en limpieza) y RN-03 (No debe estar en mantenimiento ni ocupada)
-        # Para que una habitación sea apta y disponible en el rango:
-        # 1. No debe tener reserva que se cruce en ese rango (RN-01)
-        # 2. Su estado físico actual debe ser 'Disponible' (RN-02 y RN-03)
         es_realmente_disponible = (not tiene_reserva_cruzada) and (h.estado == 'Disponible')
 
         data.append({
@@ -1192,6 +1144,7 @@ def consultar_disponibilidad_recepcion_api(request):
         'hasta': hasta_str,
         'habitaciones': data
     })
+
 
 @login_required
 @require_POST
@@ -1241,6 +1194,7 @@ def asignar_orden_mantenimiento(request, orden_id):
     orden.save()
 
     return JsonResponse({'status': 'ok', 'message': f'Orden asignada exitosamente al técnico {nombre_resp}.'})
+
 
 @login_required
 @require_POST

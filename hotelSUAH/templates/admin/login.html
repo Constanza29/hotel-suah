@@ -27,7 +27,7 @@
       {% endif %}
 
       {% if paso == 'mfa' %}
-      <!-- PASO 2: VERIFICACIÓN SEGUNDO FACTOR (MFA / TOTP) -->
+      
       <div>
         <div class="text-center mb-3">
           <span class="badge bg-primary text-uppercase mb-2 px-3 py-1">Paso 2: Segundo Factor (MFA)</span>
@@ -67,7 +67,7 @@
       </div>
 
       {% else %}
-      <!-- PASO 1: CREDENCIALES INSTITUCIONALES -->
+      
       <form method="POST" action="{% url 'login_admin' %}">
         {% csrf_token %}
         <input type="hidden" name="paso" value="credenciales">

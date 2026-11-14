@@ -1,4 +1,5 @@
 import os
+import datetime
 import django
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'hotelSUAH.settings')
@@ -8,18 +9,15 @@ from django.contrib.auth.models import User, Group
 from habitaciones.models import TipoHabitacion, Habitación
 from reservas.models import Cliente, Reserva, Folio, Cargo, Abono
 from operaciones.models import OrdenMantenimiento, TareaLimpieza
-import datetime
 
 print("Iniciando carga de datos iniciales...")
 
-# 1. Crear Grupos / Roles RBAC
 roles = ['recepcion', 'housekeeping', 'mantenimiento', 'cliente']
 grupos = {}
 for r in roles:
     g, _ = Group.objects.get_or_create(name=r)
     grupos[r] = g
 
-# 2. Crear Usuarios Empleados Demo (Institucionales @suah.cl con Nombres Reales)
 personal_staff = [
     ('admin@suah.cl', 'Constanza', 'Cortés', 'admin', 'admin123', True),
     ('rep@suah.cl', 'Matías', 'Sepúlveda', 'recepcion', '1234', False),
@@ -48,7 +46,6 @@ for email, fn, ln, rol, pwd, es_super in personal_staff:
         u.groups.add(grupos[rol])
     print(f"Personal: {fn} {ln} ({email}) - Rol: {rol}")
 
-# Cliente demo para pruebas públicas
 if not User.objects.filter(username='cliente@suah.cl').exists():
     u_cli = User.objects.create_user('cliente@suah.cl', 'cliente@suah.cl', 'Cliente123!', first_name='Constanza Cortés')
     u_cli.groups.add(grupos['cliente'])
@@ -59,7 +56,6 @@ if not User.objects.filter(username='cliente@suah.cl').exists():
     )
     print("Cliente demo creado: cliente@suah.cl / Cliente123!")
 
-# 3. Crear Tipos de Habitación
 tipo_estandar, _ = TipoHabitacion.objects.get_or_create(
     nombre='Estándar',
     defaults={
@@ -90,10 +86,9 @@ tipo_premium, _ = TipoHabitacion.objects.get_or_create(
     }
 )
 
-# 4. Crear Habitaciones y Data inicial exacta al prototipo
 data_habitaciones = [
     {'numero': '101', 'tipo': tipo_estandar, 'piso': 1, 'estado': 'Disponible', 'ticket': None},
-    {'numero': '102', 'tipo': tipo_estandar, 'piso': 1, 'estado': 'Ocupada', 'ticket': None, 
+    {'numero': '102', 'tipo': tipo_estandar, 'piso': 1, 'estado': 'Ocupada', 'ticket': None,
      'guest': 'Juan Pérez', 'guest_email': 'juan@example.com',
      'cargos': [('Alojamiento (2 noches)', 130000), ('Room Service (Cena)', 25000)],
      'abonos': [('Abono Inicial Reserva', 50000)]},
@@ -119,23 +114,22 @@ for item in data_habitaciones:
     hab.ticket_falla = item['ticket']
     hab.save()
 
-    # Si tiene ticket de mantenimiento, crear la orden
     if item['ticket']:
-        OrdenMantenimiento.objects.get_or_create(
-            habitacion=hab,
-            descripcion_falla=item['ticket'],
-            defaults={'estado': 'Abierta'}
-        )
+        if not OrdenMantenimiento.objects.filter(habitacion=hab, descripcion_falla=item['ticket']).exists():
+            OrdenMantenimiento.objects.create(
+                habitacion=hab,
+                descripcion_falla=item['ticket'],
+                estado='Abierta'
+            )
 
-    # Si está Sucia o En Limpieza, crear TareaLimpieza
     if item['estado'] in ['Sucia', 'EnLimpieza']:
         st = 'EnProceso' if item['estado'] == 'EnLimpieza' else 'Pendiente'
-        TareaLimpieza.objects.get_or_create(
-            habitacion=hab,
-            defaults={'estado': st}
-        )
+        if not TareaLimpieza.objects.filter(habitacion=hab, estado=st).exists():
+            TareaLimpieza.objects.create(
+                habitacion=hab,
+                estado=st
+            )
 
-    # Si está ocupada, crear cliente, reserva y folio
     if item.get('guest'):
         cliente, _ = Cliente.objects.get_or_create(
             email=item['guest_email'],
@@ -153,7 +147,6 @@ for item in data_habitaciones:
             }
         )
         folio, _ = Folio.objects.get_or_create(reserva=reserva)
-        # Limpiar y agregar cargos / abonos
         folio.cargos.all().delete()
         folio.abonos.all().delete()
         for desc, monto in item.get('cargos', []):

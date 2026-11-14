@@ -1,9 +1,9 @@
 from django.db import models
 
 class TipoHabitacion(models.Model):
-    nombre = models.CharField(max_length=50, unique=True) # Estándar, Suite, Suite Premium
+    nombre = models.CharField(max_length=50, unique=True)
     descripcion = models.TextField(blank=True, null=True)
-    precio_base = models.DecimalField(max_digits=10, decimal_places=0) # CLP
+    precio_base = models.DecimalField(max_digits=10, decimal_places=0)
     capacidad_personas = models.PositiveIntegerField(default=2)
     imagen_url = models.URLField(blank=True, null=True)
 
@@ -24,11 +24,11 @@ class Habitación(models.Model):
         ('Mantenimiento', 'Mantenimiento'),
     ]
 
-    numero = models.CharField(max_length=10, unique=True, primary_key=True) # Ej: 101, 102
+    numero = models.CharField(max_length=10, unique=True, primary_key=True)
     tipo = models.ForeignKey(TipoHabitacion, on_delete=models.CASCADE, related_name='habitaciones')
     piso = models.IntegerField(default=1)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='Disponible')
-    ticket_falla = models.TextField(blank=True, null=True) # Falla activa si está en Mantenimiento
+    ticket_falla = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"Habitación {self.numero} ({self.tipo.nombre}) - {self.estado}"

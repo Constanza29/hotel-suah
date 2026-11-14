@@ -1,47 +1,66 @@
-# Proyecto Integrado: SUAH (Sistema Unificado de Administración Hotelera) en Django
+# Hotel SUAH - Sistema Unificado de Administración Hotelera
 
-Sistema hotelero web full-stack desarrollado con **Python** y **Django**, integrando seguridad, control de acceso basado en roles (RBAC), base de datos relacional y frontend responsivo en **Tailwind CSS**.
-
----
-
-## 🚀 Requisitos e Instalación
-
-### 1. Activar el Entorno Virtual
-En la raíz del proyecto (`Proyecto integrado`):
-```powershell
-.\venv\Scripts\Activate.ps1
-```
-
-### 2. Ejecutar el Servidor de Desarrollo
-```powershell
-cd hotelSUAH
-python manage.py runserver
-```
-El servidor quedará disponible en: `http://127.0.0.1:8000/`
+Proyecto Integrado de Gestión Hotelera desarrollado en **Python 3.12**, **Django 6** y **Bootstrap 5**, cumpliendo con los estándares de seguridad informática y normativa chilena (Ley N° 21.719, Ley N° 21.459 e ISO/IEC 27001).
 
 ---
 
-## 👥 Cuentas de Acceso y Roles (RBAC)
+## 🚀 Requisitos Previos
 
-El sistema cuenta con usuarios demo precargados para evaluar cada módulo según los casos de uso:
-
-| Rol | Correo / Usuario | Contraseña | Vistas y Permisos |
-| :--- | :--- | :--- | :--- |
-| **Recepción** | `rep@hotel.cl` | `1234` | Matriz de habitaciones, Check-In, Folios, Abonos (RF-02) y Liquidación (RF-05) |
-| **Housekeeping** | `aseo@hotel.cl` | `1234` | Checklist móvil y cambio de estado de habitaciones (Sucia ➔ En Limpieza ➔ Disponible) |
-| **Mantenimiento** | `mant@hotel.cl` | `1234` | Gestión de tickets técnicos, bloqueo preventivo y liberación de habitaciones (RF-04) |
-| **Administrador** | `admin` | `admin123` | Control total del sistema y acceso a `/admin/` de Django |
+- **Python 3.12+** instalado con opción *"Add Python to PATH"*.
+- **Git** instalado.
 
 ---
 
-## 📂 Arquitectura del Proyecto (`hotelSUAH`)
+## 🛠️ Instalación y Puesta en Marcha (Para el equipo)
 
-* **`core/`**: Vistas principales, autenticación, control de sesiones y APIs AJAX.
-* **`habitaciones/`**: Modelos de `TipoHabitacion` y `Habitación` con control de estados (*Disponible, Ocupada, Sucia, EnLimpieza, Mantenimiento*).
-* **`reservas/`**: Modelos de `Cliente`, `Reserva`, `Folio`, `Cargo` y `Abono`.
-* **`operaciones/`**: Modelos de `TareaLimpieza` (Checklist de insumos) y `OrdenMantenimiento` (Tickets de falla).
-* **`templates/`**:
-  * `base.html`: Layout principal con Tailwind CSS y alertas Toast interactivas.
-  * `publico/index.html`: Portal web público idéntico al prototipo con buscador en tiempo real y catálogo.
-  * `admin/login.html`: Portal de autenticación con seguridad Django y protección CSRF.
-  * `admin/panel.html`: Panel operativo unificado con cambio dinámico de pestañas según rol.
+1. **Clonar el repositorio:**
+   ```bash
+   git clone <URL_DEL_REPOSITORIO>
+   cd "Proyecto integrado"
+   ```
+
+2. **Crear y activar el entorno virtual:**
+   - En Windows (PowerShell):
+     ```powershell
+     Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+     python -m venv venv
+     .\venv\Scripts\Activate.ps1
+     ```
+
+3. **Instalar dependencias:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configurar variables de entorno:**
+   - Crear archivo `.env` dentro de la carpeta `hotelSUAH/` (o copiar desde `.env.example` si existe):
+     ```env
+     SECRET_KEY=django-insecure-suah-hotel-secret-key-2026
+     DEBUG=True
+     ALLOWED_HOSTS=*
+     DB_ENGINE=sqlite
+     ```
+
+5. **Aplicar migraciones y poblar datos iniciales:**
+   ```bash
+   cd hotelSUAH
+   python manage.py migrate
+   python manage.py poblar_sistema_integral
+   ```
+
+6. **Iniciar el servidor local:**
+   ```bash
+   python manage.py runserver
+   ```
+   - Portal Huéspedes: `http://127.0.0.1:8000/`
+   - Intranet Colaboradores: `http://127.0.0.1:8000/login-admin/`
+
+---
+
+## 👥 Credenciales de Prueba (Equipo / Intranet)
+
+Todos los correos de colaboradores pertenecen al dominio `@suah.cl`:
+- **Administrador:** `admin@suah.cl` | Clave: `admin123`
+- **Recepción:** `rep@suah.cl` | Clave: `admin123`
+- **Housekeeping / Aseo:** `aseo@suah.cl` | Clave: `admin123`
+- **Mantenimiento:** `mant@suah.cl` | Clave: `admin123`

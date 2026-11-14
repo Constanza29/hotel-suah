@@ -4,7 +4,7 @@
 {% block title %}SUAH Hotel - Reservas y Estadía{% endblock %}
 
 {% block content %}
-<!-- Top Bar Corporativa -->
+
 <div class="bg-suah-dark text-white py-1 px-3 border-bottom border-secondary small">
   <div class="container d-flex justify-content-between align-items-center">
     <div>
@@ -26,7 +26,6 @@
   </div>
 </div>
 
-<!-- Navbar Principal -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-suah-dark sticky-top shadow-sm py-3">
   <div class="container">
     <a class="navbar-brand fw-bold text-suah-gold fs-3 font-serif" href="#">
@@ -46,7 +45,6 @@
   </div>
 </nav>
 
-<!-- Banner de Huésped Activo (Autoservicio o Próxima Reserva) -->
 {% if reserva_activa %}
 <div class="bg-dark text-white border-bottom border-warning py-3">
   <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
@@ -86,7 +84,6 @@
 </div>
 {% endif %}
 
-<!-- Hero Banner y Buscador de Disponibilidad  -->
 <section id="inicio" class="py-5 position-relative text-white hero-banner" style="background: linear-gradient(rgba(15, 15, 15, 0.55), rgba(15, 15, 15, 0.7)), url('{% static "images/hero_hotel.jpg" %}') center/cover no-repeat; min-height: 520px;">
   <div class="container py-4 text-center">
     <span class="text-suah-gold text-uppercase fw-bold tracking-widest small mb-2 d-inline-block">Bienvenido al Confort & Elegancia</span>
@@ -95,7 +92,6 @@
       Reserva tu habitación en línea con inventario en tiempo real y disfruta de nuestras exclusivas instalaciones.
     </p>
 
-    <!-- Caja de Búsqueda de Disponibilidad con Bootstrap Form -->
     <div class="card border-0 shadow-lg rounded-4 p-4 text-dark bg-white mx-auto text-start" style="max-width: 900px;">
       <h5 class="fw-bold text-dark mb-3"><i class="bi bi-search text-suah-gold me-2"></i>Consultar Disponibilidad de Habitaciones</h5>
       
@@ -133,7 +129,6 @@
         </div>
       </div>
 
-      <!-- Resultados de Búsqueda -->
       <div id="booking-step-2" class="d-none mt-4 border-top pt-4">
         <h6 class="fw-bold text-suah-gold mb-3">Habitaciones Disponibles para tus Fechas:</h6>
         <div class="row g-3" id="web-rooms-results"></div>
@@ -143,7 +138,6 @@
   </div>
 </section>
 
-<!-- Catálogo de Habitaciones con Bootstrap Cards -->
 <section id="habitaciones" class="py-5 bg-light">
   <div class="container">
     <div class="text-center mb-5">
@@ -176,7 +170,6 @@
   </div>
 </section>
 
-<!-- Servicios del Hotel -->
 <section id="servicios" class="py-5 bg-white">
   <div class="container">
     <div class="text-center mb-5">
@@ -218,7 +211,6 @@
   </div>
 </section>
 
-<!-- Sección de Contacto & Ubicación -->
 <section id="contacto" class="py-5 bg-light border-top">
   <div class="container py-3">
     <div class="text-center mb-5">
@@ -228,8 +220,7 @@
     </div>
 
     <div class="row g-4 align-items-stretch">
-      
-      <!-- Columna 1: Información de Contacto y Horarios -->
+
       <div class="col-12 col-lg-4">
         <div class="card h-100 border-0 shadow-sm rounded-4 p-4 bg-white">
           <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">
@@ -275,7 +266,6 @@
         </div>
       </div>
 
-      <!-- Columna 2: Mapa Interactivo de Ubicación (Al medio) -->
       <div class="col-12 col-lg-4">
         <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white d-flex flex-column">
           <div class="card-header bg-white border-0 py-3 px-3 d-flex justify-content-between align-items-center">
@@ -298,7 +288,6 @@
         </div>
       </div>
 
-      <!-- Columna 3: Formulario de Contacto Interactivo (A la derecha) -->
       <div class="col-12 col-lg-4">
         <div class="card h-100 border-0 shadow-sm rounded-4 p-4 bg-white">
           <h5 class="fw-bold text-dark mb-2 border-bottom pb-2">
@@ -341,12 +330,10 @@
   </div>
 </section>
 
-<!-- Footer Completo Hotelero de Lujo -->
 <footer class="bg-suah-dark text-white pt-5 pb-3 border-top border-secondary">
   <div class="container">
     <div class="row g-4 mb-4">
-      
-      <!-- Bloque 1: Identidad -->
+
       <div class="col-12 col-md-4">
         <h4 class="fw-bold text-suah-gold font-serif mb-2">SUAH HOTEL</h4>
         <p class="small text-white-50 mb-3" style="line-height: 1.6;">
@@ -360,7 +347,6 @@
         </div>
       </div>
 
-      <!-- Bloque 2: Enlaces Rápidos -->
       <div class="col-6 col-md-2">
         <h6 class="fw-bold text-white mb-3 text-uppercase small tracking-wider">Navegación</h6>
         <ul class="list-unstyled small text-white-50 space-y-2">
@@ -371,7 +357,6 @@
         </ul>
       </div>
 
-      <!-- Bloque 3: Normativa y Seguridad -->
       <div class="col-6 col-md-3">
         <h6 class="fw-bold text-white mb-3 text-uppercase small tracking-wider">Compromiso Legal</h6>
         <ul class="list-unstyled small text-white-50" style="font-size: 0.8rem; line-height: 1.6;">
@@ -382,7 +367,6 @@
         </ul>
       </div>
 
-      <!-- Bloque 4: Portal Staff Exclusivo -->
       <div class="col-12 col-md-3">
         <h6 class="fw-bold text-white mb-3 text-uppercase small tracking-wider">Acceso Interno</h6>
         <p class="small text-white-50 mb-2">Portal exclusivo para colaboradores, recepción y administración del hotel:</p>
@@ -393,7 +377,6 @@
 
     </div>
 
-    <!-- Barra Inferior Derechos -->
     <div class="pt-3 border-top border-secondary d-flex flex-column flex-md-row justify-content-between align-items-center small text-white-50">
       <p class="mb-0">Proyecto Integrado &copy; 2026 SUAH Hotel S.A. Todos los derechos reservados.</p>
       <p class="mb-0 text-white-50">Desarrollado con Python, Django 5 & Bootstrap 5</p>
@@ -401,17 +384,11 @@
   </div>
 </footer>
 
-
-<!-- ======================================================== -->
-<!-- MODALES BOOTSTRAP 5 HUÉSPED (AUTENTICACIÓN Y SERVICIOS)  -->
-<!-- ======================================================== -->
-
-<!-- Modal Acceso y Registro Seguro de Huéspedes -->
 <div class="modal fade" id="modalAuthCliente" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4 border-0 shadow-lg">
       <div class="modal-header border-0 pb-0">
-        <!-- Nav Tabs Bootstrap -->
+        
         <ul class="nav nav-pills nav-fill w-100" id="pills-tab" role="tablist">
           <li class="nav-item">
             <button class="nav-link active fw-bold btn-sm" id="tab-btn-login" onclick="toggleAuthTab('login')">
@@ -428,8 +405,7 @@
       </div>
 
       <div class="modal-body p-4">
-        
-        <!-- Formulario Login Paso 1: Credenciales -->
+
         <div id="form-login-cliente">
           <div class="text-center mb-3">
             <h5 class="fw-bold text-dark mb-1">Acceso Huéspedes</h5>
@@ -448,7 +424,6 @@
           </button>
         </div>
 
-        <!-- Formulario Login Paso 2: Segundo Factor MFA -->
         <div id="form-mfa-cliente" class="d-none">
           <div class="text-center mb-3">
             <span class="badge bg-primary text-uppercase mb-1">Paso 2: Segundo Factor (MFA)</span>
@@ -456,13 +431,11 @@
             <small class="text-muted" id="cli-mfa-email-display"></small>
           </div>
 
-          <!-- Alerta Simulación Móvil -->
           <div class="card bg-light border-0 p-2.5 rounded-3 mb-3 text-center" style="font-size: 0.78rem;">
             <span class="text-dark fw-bold d-block"><i class="bi bi-phone-vibrate text-primary me-1"></i>Notificación enviada al celular:</span>
             <span id="cli-mfa-tel-display" class="text-muted fw-semibold"></span>
           </div>
 
-          <!-- Código QR para Google / Microsoft Authenticator en el teléfono -->
           <div class="text-center mb-3 p-3 border rounded-3 bg-white shadow-sm">
             <img id="cli-mfa-qr-img" src="" alt="QR MFA Huésped" class="img-fluid rounded border mb-2" style="max-width: 140px;">
             <p class="mb-1 text-dark fw-bold" style="font-size: 0.82rem;">
@@ -487,7 +460,6 @@
           </button>
         </div>
 
-        <!-- Formulario Registro Seguro -->
         <div id="form-register-cliente" class="d-none">
           <div class="text-center mb-3">
             <h5 class="fw-bold text-dark mb-1">Crear Cuenta Segura</h5>
@@ -561,7 +533,6 @@
   </div>
 </div>
 
-<!-- Modal Huésped: Pedir Servicio, Aseo o Mantenimiento -->
 <div class="modal fade" id="modalPedirServicio" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4 border-0 shadow-lg">
@@ -573,8 +544,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        
-        <!-- Pestañas de Selección de Tipo de Solicitud -->
+
         <ul class="nav nav-pills nav-fill mb-3 bg-light p-1 rounded-3 small fw-bold" id="pills-huesped-tab" role="tablist">
           <li class="nav-item" role="presentation">
             <button class="nav-link active py-2" id="tab-sol-consumo" onclick="cambiarTabSolicitudHuesped('consumo')">
@@ -593,7 +563,6 @@
           </li>
         </ul>
 
-        <!-- SECCIÓN 1: Consumo / Room Service -->
         <div id="sec-huesped-consumo">
           <p class="text-muted small mb-3">El cargo por servicio se sumará a tu folio y lo liquidas al check-out o con WebPay.</p>
           <div class="mb-3">
@@ -612,7 +581,6 @@
           </div>
         </div>
 
-        <!-- SECCIÓN 2: Insumos / Aseo durante la estadía -->
         <div id="sec-huesped-aseo" class="d-none">
           <div class="alert alert-info py-2 small mb-3">
             <i class="bi bi-info-circle-fill me-1"></i> <strong>Sin costo adicional:</strong> Nuestro equipo de Housekeeping te llevará los insumos solicitados directamente a la habitación.
@@ -631,7 +599,6 @@
           </div>
         </div>
 
-        <!-- SECCIÓN 3: Falla Técnica / Mantenimiento -->
         <div id="sec-huesped-mant" class="d-none">
           <div class="alert alert-warning py-2 small mb-3">
             <i class="bi bi-cone-striped me-1"></i> <strong>Soporte en Habitación:</strong> Reporta cualquier desperfecto para que nuestro equipo técnico acuda a solucionarlo sin interrumpir tu estadía.
@@ -661,7 +628,6 @@
   </div>
 </div>
 
-<!-- Modal Huésped: Abono WebPay Online -->
 <div class="modal fade" id="modalAbonoWebpay" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4 border-0 shadow-lg">

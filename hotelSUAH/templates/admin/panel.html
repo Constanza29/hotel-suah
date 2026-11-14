@@ -5,7 +5,6 @@
 {% block content %}
 <div class="container-fluid px-md-5 py-4">
 
-  <!-- Admin Header -->
   <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
       <div>
@@ -19,7 +18,6 @@
         </p>
       </div>
 
-      <!-- Navegación de Roles (RBAC Estricto con botones Bootstrap) -->
       <div class="d-flex align-items-center gap-2">
         {% if rol == 'admin' or rol == 'administrador' %}
         <div class="btn-group shadow-sm" role="group">
@@ -74,11 +72,9 @@
     </div>
   </div>
 
-  <!-- Vista: Recepción -->
   {% if rol == 'recepcion' or rol == 'admin' or rol == 'administrador' %}
   <div id="view-recepcion" class="row g-4">
-    
-    <!-- Sidebar: Dashboard Ocupación -->
+
     <div class="col-12 col-lg-3">
       <div class="card border-0 shadow-sm rounded-4 p-4 bg-white sticky-top" style="top: 1rem;">
         <h2 class="h6 fw-bold text-dark border-bottom pb-3 mb-3">
@@ -124,7 +120,6 @@
       </div>
     </div>
 
-    <!-- Main: Matriz de Habitaciones -->
     <div class="col-12 col-lg-9">
       <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 border-bottom pb-3 mb-3">
@@ -138,7 +133,6 @@
           </div>
         </div>
 
-        <!-- Filtro por Fechas de Disponibilidad -->
         <div class="card bg-light border-0 p-3 rounded-3 mb-4">
           <div class="row g-2 align-items-center">
             <div class="col-12 col-md-3">
@@ -167,12 +161,10 @@
           <div id="filtro-resultado-msg" class="d-none small alert py-1 px-2 mt-2 mb-0"></div>
         </div>
 
-        <!-- Grid de Tarjetas Bootstrap -->
         <div class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3 mb-4" id="room-matrix"></div>
 
-        <!-- Solicitudes Activas de Huéspedes en Estadía (Recepción / Admin) -->
         <div class="row g-3 border-top pt-3">
-          <!-- Tarjeta Solicitudes Housekeeping -->
+          
           <div class="col-12 col-md-6">
             <div class="card border-warning bg-warning bg-opacity-10 rounded-3 p-3 h-100 shadow-xs">
               <div class="d-flex justify-content-between align-items-center mb-2">
@@ -197,7 +189,6 @@
             </div>
           </div>
 
-          <!-- Tarjeta Reportes Técnicos Huéspedes -->
           <div class="col-12 col-md-6">
             <div class="card border-danger bg-danger bg-opacity-10 rounded-3 p-3 h-100 shadow-xs">
               <div class="d-flex justify-content-between align-items-center mb-2">
@@ -233,7 +224,6 @@
   </div>
   {% endif %}
 
-  <!-- Vista: Housekeeping -->
   {% if rol == 'housekeeping' or rol == 'admin' or rol == 'administrador' %}
   <div id="view-housekeeping" class="{% if rol != 'housekeeping' %}d-none{% endif %} card border-0 shadow-sm rounded-4 p-4 bg-white">
     <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
@@ -243,7 +233,6 @@
       <span class="badge bg-warning text-dark px-3 py-2 fw-bold" id="hk-counter">0 Pendientes</span>
     </div>
 
-    <!-- Tabla de Limpieza Habitaciones Desocupadas (Check-out) -->
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h6 class="fw-bold text-secondary mb-0"><i class="bi bi-door-closed me-1"></i>Habitaciones Desocupadas para Sanitización:</h6>
       <small class="text-muted"><i class="bi bi-person-badge me-1"></i>Personal de Housekeeping en turno</small>
@@ -263,7 +252,6 @@
       </table>
     </div>
 
-    <!-- Sección de Solicitudes de Insumos y Aseo de Huéspedes en Estadía -->
     <div class="border-top pt-3">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h6 class="fw-bold text-dark mb-0">
@@ -314,7 +302,6 @@
   </div>
   {% endif %}
 
-  <!-- Vista: Mantenimiento -->
   {% if rol == 'mantenimiento' or rol == 'admin' or rol == 'administrador' %}
   <div id="view-mantenimiento" class="{% if rol != 'mantenimiento' %}d-none{% endif %} card border-0 shadow-sm rounded-4 p-4 bg-white">
     <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
@@ -327,7 +314,6 @@
       <span class="badge bg-danger px-3 py-2 fw-bold" id="mt-counter">{{ tickets_mantenimiento|length }} Tickets Activos</span>
     </div>
 
-    <!-- SECCIÓN 1: REQUERIMIENTOS URGENTES EN HABITACIONES OCUPADAS (Sin bloqueo de habitación) -->
     <div class="mb-4">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h6 class="fw-bold text-primary mb-0">
@@ -380,7 +366,6 @@
       </div>
     </div>
 
-    <!-- SECCIÓN 2: HABITACIONES BLOQUEADAS POR FALLA TÉCNICA (Preventivas) -->
     <div class="border-top pt-4">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h6 class="fw-bold text-danger mb-0">
@@ -435,7 +420,6 @@
   </div>
   {% endif %}
 
-  <!-- Vista: Mensajes de Contacto Web -->
   {% if rol == 'recepcion' or rol == 'admin' or rol == 'administrador' %}
   <div id="view-mensajes" class="d-none card border-0 shadow-sm rounded-4 p-4 bg-white">
     <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
@@ -500,7 +484,7 @@
     {% endif %}
   </div>
   {% endif %}
-  <!-- Vista: Historial y Auditoría de Limpiezas y Mantenimientos -->
+  
   {% if rol == 'recepcion' or rol == 'admin' or rol == 'administrador' %}
   <div id="view-historial" class="d-none card border-0 shadow-sm rounded-4 p-4 bg-white">
     <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
@@ -516,7 +500,6 @@
       </div>
     </div>
 
-    <!-- Pestañas internas del historial -->
     <ul class="nav nav-pills mb-4 gap-2" id="pills-historial-tab" role="tablist">
       <li class="nav-item">
         <button class="nav-link active fw-bold btn-sm py-2 px-3" id="tab-sub-limpiezas" onclick="cambiarSubHistorial('limpiezas')">
@@ -530,7 +513,6 @@
       </li>
     </ul>
 
-    <!-- SUB-TAB 1: Limpiezas -->
     <div id="sub-historial-limpiezas">
       {% if historial_limpiezas %}
       <div class="table-responsive">
@@ -594,7 +576,6 @@
       {% endif %}
     </div>
 
-    <!-- SUB-TAB 2: Mantenimientos -->
     <div id="sub-historial-mantenimientos" class="d-none">
       {% if historial_mantenimientos %}
       <div class="table-responsive">
@@ -649,7 +630,6 @@
   </div>
   {% endif %}
 
-  <!-- Vista: Gestión y Nómina de Personal (Admin) -->
   {% if rol == 'admin' or rol == 'administrador' %}
   <div id="view-personal" class="d-none card border-0 shadow-sm rounded-4 p-4 bg-white">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 border-bottom pb-3 mb-4">
@@ -721,11 +701,8 @@
   </div>
   {% endif %}
 
-
 </div>
 
-
-<!-- Modal Registrar Empleado (Admin) -->
 <div class="modal fade" id="modalCrearPersonal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4 border-0 shadow-lg">
@@ -777,9 +754,6 @@
   </div>
 </div>
 
-<!-- ======================================================== -->
-<!-- MODAL RESPONDER MENSAJE DE CONTACTO                      -->
-<!-- ======================================================== -->
 <div class="modal fade" id="modalResponderMensaje" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4 border-0 shadow-lg">
@@ -812,11 +786,6 @@
   </div>
 </div>
 
-<!-- ======================================================== -->
-<!-- MODALES BOOTSTRAP 5 OFICIALES                            -->
-<!-- ======================================================== -->
-
-<!-- Modal Detalle Habitación y Folio (Bootstrap Modal) -->
 <div class="modal fade" id="modalRoomDetail" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content rounded-4 border-0 shadow-lg">
@@ -832,7 +801,6 @@
   </div>
 </div>
 
-<!-- Modal Check-in Directo (Bootstrap Modal) -->
 <div class="modal fade" id="modalCheckinDirecto" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4 border-0 shadow-lg">
@@ -922,7 +890,6 @@
   </div>
 </div>
 
-<!-- Modal Añadir Consumo (Bootstrap Modal) -->
 <div class="modal fade" id="modalConsumo" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4 border-0 shadow-lg">
@@ -959,7 +926,6 @@
   </div>
 </div>
 
-<!-- Modal Registrar Abono / Pago (Bootstrap Modal) -->
 <div class="modal fade" id="modalAbono" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4 border-0 shadow-lg">
@@ -1002,7 +968,6 @@
           </div>
         </div>
 
-        <!-- Vista de Procesamiento en Maquinita POS (animación con spinner) -->
         <div id="pos-terminal-animacion" class="d-none text-center py-4 my-2 border rounded-4 bg-light shadow-sm">
           <div class="spinner-border text-primary mb-3" style="width: 3.5rem; height: 3.5rem;" role="status">
             <span class="visually-hidden">Cargando...</span>
@@ -1025,8 +990,6 @@
   </div>
 </div>
 
-
-<!-- Modal Checklist de Insumos y Limpieza -->
 <div class="modal fade" id="modalChecklistAseo" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4 border-0 shadow-lg">
@@ -1041,8 +1004,7 @@
       </div>
 
       <div class="modal-body p-4">
-        
-        <!-- Puntos de Control e Insumos -->
+
         <h6 class="fw-bold text-dark mb-3">1. Verificación de Insumos y Estado Físico:</h6>
         
         <div class="card bg-light border-0 p-3 rounded-3 mb-3">
@@ -1083,7 +1045,6 @@
           <input type="text" id="chk-observaciones" class="form-control form-control-sm" placeholder="Ej: Repuesto adicional de toalla de mano">
         </div>
 
-        <!-- Sección Bifurcación Desperfecto  -->
         <div class="card border-danger-subtle bg-danger-subtle p-3 rounded-3 mb-2">
           <div class="d-flex align-items-center justify-content-between mb-2">
             <span class="small fw-bold text-danger">
@@ -1427,7 +1388,6 @@
               </div>
             `}
 
-            <!-- Acciones de Servicio Operativo en Habitación Ocupada -->
             <div class="p-2 border rounded-3 bg-light mt-1">
               <span class="small fw-bold text-muted d-block mb-2">
                 <i class="bi bi-headset me-1"></i>Atención Operativa de Huésped en Habitación Ocupada:
@@ -2041,7 +2001,6 @@
     });
   }
 
-
   // --- CONSULTA DISPONIBILIDAD CON FILTRO POR FECHAS  ---
   let filtroFechasActivo = false;
 
@@ -2115,7 +2074,6 @@
       });
   }
 
-
   // --- GESTIÓN DE MENSAJES DE CONTACTO WEB ---
   let bsModalResponder = null;
   let mensajeIdActual = null;
@@ -2169,7 +2127,6 @@
     });
   }
 
-
   // --- ASIGNACIÓN DE RESPONSABLES Y HISTORIAL OPERATIVO ---
   function cambiarSubHistorial(tipo) {
     const btnL = document.getElementById('tab-sub-limpiezas');
@@ -2217,7 +2174,6 @@
     })
     .catch(() => showToast('Error al asignar orden de mantenimiento.', 'error'));
   }
-
 
   // --- GESTIÓN DE PERSONAL (ADMIN) ---
   let bsModalCrearEmp = null;

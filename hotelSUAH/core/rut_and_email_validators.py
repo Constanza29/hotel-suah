@@ -2,11 +2,6 @@ import re
 from itertools import cycle
 
 def validar_rut_chileno(rut_str):
-    """
-    Valida un RUT chileno usando el algoritmo oficial de Módulo 11.
-    Soporta formatos con puntos y guion (ej: 12.345.678-5) o solo con guion (12345678-5).
-    Retorna (es_valido: bool, mensaje: str, rut_limpio: str)
-    """
     if not rut_str:
         return False, "El RUT es obligatorio.", ""
 
@@ -19,6 +14,7 @@ def validar_rut_chileno(rut_str):
 
     cuerpo, dv = match.groups()
 
+    # Cálculo de dígito verificador (Módulo 11)
     suma = sum(int(digito) * factor for digito, factor in zip(reversed(cuerpo), cycle([2, 3, 4, 5, 6, 7])))
     resto = 11 - (suma % 11)
 
@@ -30,7 +26,7 @@ def validar_rut_chileno(rut_str):
         dv_esperado = str(resto)
 
     if dv != dv_esperado:
-        return False, f"El RUT ingresado no es válido", ""
+        return False, "El RUT ingresado no es válido", ""
 
     cuerpo_con_puntos = f"{int(cuerpo):,}".replace(',', '.')
     rut_formateado = f"{cuerpo_con_puntos}-{dv}"
@@ -38,9 +34,6 @@ def validar_rut_chileno(rut_str):
 
 
 def validar_documento_identidad(tipo_doc, doc_str):
-    """
-    Valida RUT chileno o Pasaporte extranjero.
-    """
     if tipo_doc == 'pasaporte':
         doc_limpio = doc_str.strip().upper()
         if len(doc_limpio) < 6 or len(doc_limpio) > 15:
@@ -69,9 +62,6 @@ DOMINIOS_PERMITIDOS = [
 ]
 
 def validar_correo_real(email_str):
-    """
-    Valida formato estricto RFC 5322 y restringe o valida proveedores de correo reconocidos.
-    """
     if not email_str:
         return False, "El correo electrónico es obligatorio."
 
@@ -103,22 +93,12 @@ def validar_correo_real(email_str):
 
 
 def validar_telefono_chileno(tel_str):
-    """
-    Valida formato de número telefónico:
-    - Móvil chileno estándar: +56 9 1234 5678, +56912345678, o 912345678 (9 dígitos)
-    - Internacional: código de país + número entre 8 y 15 dígitos.
-    - Rechaza comillas, caracteres extraños o números absurdos.
-    Retorna (es_valido: bool, mensaje: str, tel_formateado: str)
-    """
     if not tel_str or not tel_str.strip():
-        # Si no ingresó teléfono y no es estrictamente obligatorio, retorna True o pide el campo
         return False, "El teléfono de contacto es obligatorio.", ""
 
-    # Si contiene caracteres sospechosos como comillas, barras o letras
     if re.search(r"['\";<>\\]", tel_str):
         return False, "El teléfono contiene caracteres no válidos (no se permiten comillas ni símbolos especiales).", ""
 
-    # Extraer solo dígitos y el signo + si existe al inicio
     tel_limpio = tel_str.strip()
     tiene_plus = tel_limpio.startswith('+')
     solo_numeros = re.sub(r'\D', '', tel_limpio)
@@ -126,17 +106,14 @@ def validar_telefono_chileno(tel_str):
     if len(solo_numeros) < 8 or len(solo_numeros) > 15:
         return False, f"El teléfono debe tener entre 8 y 12 dígitos numéricos (ingresaste {len(solo_numeros)}).", ""
 
-    # Caso Chile: Si ingresó 9 dígitos (ej: 912345678)
     if len(solo_numeros) == 9 and solo_numeros.startswith('9'):
         tel_formateado = f"+56 9 {solo_numeros[1:5]} {solo_numeros[5:]}"
         return True, "Teléfono válido", tel_formateado
 
-    # Caso Chile con 569: (ej: 56912345678 -> 11 dígitos)
     if len(solo_numeros) == 11 and solo_numeros.startswith('569'):
         num = solo_numeros[3:]
         tel_formateado = f"+56 9 {num[:4]} {num[4:]}"
         return True, "Teléfono válido", tel_formateado
 
-    # Caso internacional genérico
     prefijo = "+" if tiene_plus else ""
     return True, "Teléfono válido", f"{prefijo}{solo_numeros}"

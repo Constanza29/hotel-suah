@@ -44,10 +44,6 @@ class Reserva(models.Model):
 
 
 class Folio(models.Model):
-    """
-    Representa la cuenta de cobro asociada a una reserva/habitación.
-    Soporta cargos por consumo y pagos/abonos (RF-02 y RF-05).
-    """
     reserva = models.OneToOneField(Reserva, on_delete=models.CASCADE, related_name='folio')
     abierto = models.BooleanField(default=True)
     fecha_apertura = models.DateTimeField(auto_now_add=True)
@@ -71,7 +67,7 @@ class Folio(models.Model):
 
 class Cargo(models.Model):
     folio = models.ForeignKey(Folio, on_delete=models.CASCADE, related_name='cargos')
-    descripcion = models.CharField(max_length=200) # Ej: Alojamiento (2 noches), Room Service
+    descripcion = models.CharField(max_length=200)
     monto = models.DecimalField(max_digits=10, decimal_places=0)
     fecha = models.DateTimeField(auto_now_add=True)
 
@@ -81,7 +77,7 @@ class Cargo(models.Model):
 
 class Abono(models.Model):
     folio = models.ForeignKey(Folio, on_delete=models.CASCADE, related_name='abonos')
-    descripcion = models.CharField(max_length=200) # Ej: Abono Inicial Reserva, Pago Caja
+    descripcion = models.CharField(max_length=200)
     monto = models.DecimalField(max_digits=10, decimal_places=0)
     metodo_pago = models.CharField(max_length=50, default='Efectivo/Transferencia')
     fecha = models.DateTimeField(auto_now_add=True)
